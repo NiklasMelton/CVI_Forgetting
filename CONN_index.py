@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.utils.validation import check_X_y
+from artlib import FuzzyART, SimpleARTMAP
+
 
 def conn_score(X, labels, n_neighbors=1):
     """
