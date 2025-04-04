@@ -99,7 +99,7 @@ class CONNFuzzyART(FuzzyART):
             c2_ = 1
         return c1_, c2_
 
-class CONNSimplifiedARTMAP(SimpleARTMAP):
+class CONNSimpleARTMAP(SimpleARTMAP):
     def match_reset_func(
         self,
         i: np.ndarray,
@@ -147,8 +147,8 @@ class CONNSimplifiedARTMAP(SimpleARTMAP):
 
 class iCONN:
     def __init__(self, rho: float = 0.9):
-        module_a = CONNFuzzyART(rho=rho, alpha=0.0, beta=1.0)
-        self.FuzzyARTMAP = SimpleARTMAP(module_a)
+        module_a = CONNFuzzyART(rho=rho, alpha=1e-10, beta=1.0)
+        self.ARTMAP = CONNSimpleARTMAP(module_a)
         self.CADJ = GrowingSquareArray()
         self.CONN = GrowingSquareArray()
         self.INTRA = GrowingArray1D()
@@ -158,10 +158,55 @@ class iCONN:
         self.rev_map = defaultdict(set)
         self.index = np.nan
 
+    def _calc_inter(self, i, j):
+        S1 = np.array(sorted(self.rev_map[i]))
+        S2 = np.array(sorted(self.rev_map[j]))
+        inter_numer = self.CONN[np.ix_(S1, S2)].sum()
+
+        # Mask to select CADJ[i, j] > 0 for i in S1 and j in S2
+        CADJ_sub = self.CADJ[np.ix_(S1, S2)]
+        CONN_sub = self.CONN[np.ix_(S1, S2)]
+        # Find which rows in CADJ_sub have any positive value
+        valid_rows = np.any(CADJ_sub > 0, axis=1)
+        # Filter CONN_sub to only those rows
+        inter_denom = np.sum(CONN_sub[valid_rows])
+        # calculate INTER
+        return inter_numer / inter_denom
+
+    def _update_metric(self, y, y2):
+        S = np.array(sorted(self.rev_map[y]))
+        self.INTRA[y] = self.CADJ[np.ix_(S, S)].sum() / self.cluster_cardinality[y]
+        self.intra_conn = sum(self.INTRA) / len(self.rev_map)
+
+        if y != y2:
+            # different classes
+            self.INTER[y, y2] = self._calc_inter(y, y2)
+            self.INTER[y2, y] = self._calc_inter(y2, y)
+        else:
+            # same class
+            for m in self.rev_map.keys():
+                if m != y:
+                    self.INTER[y, m] = self._calc_inter(y, m)
+
+        A = self.INTER.asarray()
+        self.inter_conn = np.max(
+            np.where(
+                ~np.eye(
+                    A.shape[0],
+                    dtype=bool
+                ),
+                A,
+                -np.inf
+            ),
+            axis=1
+        ).sum() / len(self.rev_map)
+        self.index = self.intra_conn * (1 - self.inter_conn)
+
+
     def add_sample(self, x, y):
-        self.FuzzyARTMAP = self.FuzzyARTMAP.partial_fit([x], [y])
-        bmu1 = self.FuzzyARTMAP.module_a.labels_[-1]
-        c_a1_, c_a2_ = self.FuzzyARTMAP.module_a.step_pred_first_and_second(x)
+        self.ARTMAP = self.ARTMAP.partial_fit([x], [y])
+        bmu1 = self.ARTMAP.module_a.labels_[-1]
+        c_a1_, c_a2_ = self.ARTMAP.module_a.step_pred_first_and_second(x)
         bmu2 = (c_a2_ if bmu1 == c_a1_ else c_a1_)
         self.rev_map[y].add(bmu1)
 
@@ -169,47 +214,31 @@ class iCONN:
         self.CADJ[bmu1, bmu2] += 1
         self.CONN[bmu1, bmu2] = self.CADJ[bmu1, bmu2] + self.CADJ[bmu2, bmu1]
 
-        assert y == self.FuzzyARTMAP.map[bmu1]
-        if bmu2 not in self.FuzzyARTMAP.map:
+        assert y == self.ARTMAP.map[bmu1]
+        if bmu2 not in self.ARTMAP.map:
             y2 = int(y)
         else:
-            y2 = self.FuzzyARTMAP.map[bmu2]
+            y2 = self.ARTMAP.map[bmu2]
 
-        ### THIS PROBABLY NEEDS TO CHANGE
-        if y == y2:
-            # same class
-            intra_old = float(self.INTRA[y])
-            S = np.array(sorted(self.rev_map[y]))
-            self.INTRA[y] = self.CADJ[np.ix_(S, S)].sum() / self.cluster_cardinality[y]
-            self.intra_conn = sum(self.INTRA)/len(self.rev_map)
-        else:
-            # different classes
-            S1 = np.array(sorted(self.rev_map[y]))
-            S2 = np.array(sorted(self.rev_map[y2]))
-            inter_numer = self.CONN[np.ix_(S1, S2)].sum()
+        self._update_metric(y, y2)
 
-            # Mask to select CADJ[i, j] > 0 for i in S1 and j in S2
-            CADJ_sub = self.CADJ[np.ix_(S1, S2)]
-            CONN_sub = self.CONN[np.ix_(S1, S2)]
-            # Find which rows in CADJ_sub have any positive value
-            valid_rows = np.any(CADJ_sub > 0, axis=1)
-            # Filter CONN_sub to only those rows
-            inter_denom = np.sum(CONN_sub[valid_rows])
-            # update INTER
-            self.INTER[y, y2] = inter_numer / inter_denom
+    def add_batch(self, X, y):
+        self.ARTMAP = self.ARTMAP.partial_fit(X, y)
+        BMU1 = self.ARTMAP.module_a.labels_[-len(X)]
+        for x, bmu1 in zip(X, BMU1):
+            c_a1_, c_a2_ = self.ARTMAP.module_a.step_pred_first_and_second(X)
+            bmu2 = (c_a2_ if bmu1 == c_a1_ else c_a1_)
+            self.rev_map[y].add(bmu1)
 
-            A = self.INTER.asarray()
-            self.inter_conn = np.max(
-                np.where(
-                    ~np.eye(
-                        A.shape[0],
-                        dtype=bool
-                    ),
-                    A,
-                    -np.inf
-                ),
-                axis=1
-            ).sum() / len(self.rev_map)
-        self.index = self.intra_conn * (1-self.inter_conn)
+            self.cluster_cardinality[y] += 1
+            self.CADJ[bmu1, bmu2] += 1
+            self.CONN[bmu1, bmu2] = self.CADJ[bmu1, bmu2] + self.CADJ[bmu2, bmu1]
 
+            assert y == self.ARTMAP.map[bmu1]
+            if bmu2 not in self.ARTMAP.map:
+                y2 = int(y)
+            else:
+                y2 = self.ARTMAP.map[bmu2]
+
+            self._update_metric(y, y2)
 
