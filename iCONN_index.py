@@ -1,11 +1,13 @@
 import numpy as np
 from artlib import FuzzyART, SimpleARTMAP
+from artlib.common.utils import complement_code
 from typing import Optional
 from collections import defaultdict
+import numbers
 
 class GrowingSquareArray:
-    def __init__(self):
-        self.array = np.zeros((0, 0), dtype=int)
+    def __init__(self, dtype=int):
+        self.array = np.zeros((0, 0), dtype=dtype)
 
     def _ensure_size(self, i, j):
         size = max(i + 1, j + 1)
@@ -17,6 +19,12 @@ class GrowingSquareArray:
 
     def __getitem__(self, idx):
         i, j = idx
+        # if either index is an array/slice, forward directly to the numpy array:
+        if (not isinstance(i, numbers.Integral)
+            or not isinstance(j, numbers.Integral)):
+            return self.array[idx]
+
+        # otherwise do your auto-resize + element access
         self._ensure_size(i, j)
         return self.array[i, j]
 
@@ -73,6 +81,11 @@ class GrowingArray1D:
     def asarray(self):
         return self.array.copy()
 
+    def __iter__(self):
+        # iterate over the *current* contents only
+        for v in self.array:
+            yield v
+
 class CONNFuzzyART(FuzzyART):
     def step_pred_first_and_second(self, x) -> int:
         """Predict the label for a single sample.
@@ -93,6 +106,7 @@ class CONNFuzzyART(FuzzyART):
         T, _ = zip(*[self.category_choice(x, w, params=self.params) for w in self.W])
         c1_ = int(np.argmax(T))
         if len(T) > 1:
+            T = list(T)
             T[c1_] = -np.inf
             c2_ = int(np.argmax(T))
         else:
@@ -151,16 +165,16 @@ class iCONN:
         self.ARTMAP = CONNSimpleARTMAP(module_a)
         self.CADJ = GrowingSquareArray()
         self.CONN = GrowingSquareArray()
-        self.INTRA = GrowingArray1D()
+        self.INTRA = GrowingArray1D(dtype=float)
         self.inter_conn = 0.0
-        self.INTER = GrowingSquareArray()
+        self.INTER = GrowingSquareArray(dtype=float)
         self.cluster_cardinality = GrowingArray1D()
         self.rev_map = defaultdict(set)
         self.index = np.nan
 
     def _calc_inter(self, i, j):
-        S1 = np.array(sorted(self.rev_map[i]))
-        S2 = np.array(sorted(self.rev_map[j]))
+        S1 = np.array(sorted(self.rev_map[i]), dtype=int)
+        S2 = np.array(sorted(self.rev_map[j]), dtype=int)
         inter_numer = self.CONN[np.ix_(S1, S2)].sum()
 
         # Mask to select CADJ[i, j] > 0 for i in S1 and j in S2
@@ -171,13 +185,14 @@ class iCONN:
         # Filter CONN_sub to only those rows
         inter_denom = np.sum(CONN_sub[valid_rows])
         # calculate INTER
+        if inter_denom == 0:
+            return 0.0
         return inter_numer / inter_denom
 
     def _update_metric(self, y, y2):
         S = np.array(sorted(self.rev_map[y]))
         self.INTRA[y] = self.CADJ[np.ix_(S, S)].sum() / self.cluster_cardinality[y]
         self.intra_conn = sum(self.INTRA) / len(self.rev_map)
-
         if y != y2:
             # different classes
             self.INTER[y, y2] = self._calc_inter(y, y2)
@@ -187,24 +202,24 @@ class iCONN:
             for m in self.rev_map.keys():
                 if m != y:
                     self.INTER[y, m] = self._calc_inter(y, m)
-
         A = self.INTER.asarray()
-        self.inter_conn = np.max(
-            np.where(
-                ~np.eye(
-                    A.shape[0],
-                    dtype=bool
-                ),
-                A,
-                -np.inf
-            ),
-            axis=1
-        ).sum() / len(self.rev_map)
+        n = A.shape[0]  # should equal len(self.rev_map)
+        if n < 2:
+            # with fewer than two classes, define inter-conn as 0
+            self.inter_conn = 0.0
+        else:
+            # compute off-diagonal maxes
+            mask = ~np.eye(n, dtype=bool)
+            off_diag = np.where(mask, A, -np.inf)
+            # max over each row, sum, normalize
+            self.inter_conn = np.max(off_diag, axis=1).sum() / n
+
         self.index = self.intra_conn * (1 - self.inter_conn)
 
 
     def add_sample(self, x, y):
-        self.ARTMAP = self.ARTMAP.partial_fit([x], [y])
+        x_prep = complement_code([x])
+        self.ARTMAP = self.ARTMAP.partial_fit(x_prep, [y])
         bmu1 = self.ARTMAP.module_a.labels_[-1]
         c_a1_, c_a2_ = self.ARTMAP.module_a.step_pred_first_and_second(x)
         bmu2 = (c_a2_ if bmu1 == c_a1_ else c_a1_)
@@ -221,12 +236,15 @@ class iCONN:
             y2 = self.ARTMAP.map[bmu2]
 
         self._update_metric(y, y2)
+        return self.index
 
-    def add_batch(self, X, y):
-        self.ARTMAP = self.ARTMAP.partial_fit(X, y)
-        BMU1 = self.ARTMAP.module_a.labels_[-len(X)]
-        for x, bmu1 in zip(X, BMU1):
-            c_a1_, c_a2_ = self.ARTMAP.module_a.step_pred_first_and_second(X)
+    def add_batch(self, X, Y):
+        X_prep = complement_code(X)
+        self.ARTMAP = self.ARTMAP.partial_fit(X_prep, Y)
+        BMU1 = self.ARTMAP.module_a.labels_[-len(Y):]
+        for x, y, bmu1 in zip(X_prep, Y, BMU1):
+            y = int(y)
+            c_a1_, c_a2_ = self.ARTMAP.module_a.step_pred_first_and_second(x)
             bmu2 = (c_a2_ if bmu1 == c_a1_ else c_a1_)
             self.rev_map[y].add(bmu1)
 
@@ -238,7 +256,8 @@ class iCONN:
             if bmu2 not in self.ARTMAP.map:
                 y2 = int(y)
             else:
-                y2 = self.ARTMAP.map[bmu2]
+                y2 = int(self.ARTMAP.map[bmu2])
 
             self._update_metric(y, y2)
+        return self.index
 
