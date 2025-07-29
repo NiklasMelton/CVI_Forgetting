@@ -1,9 +1,10 @@
 import numpy as np
 from artlib import FuzzyART, SimpleARTMAP
 from artlib.common.utils import complement_code
-from typing import Optional
+from typing import Optional, Literal
 from collections import defaultdict
 import numbers
+from iKMeans import iKMeans
 
 class GrowingSquareArray:
     def __init__(self, dtype=int):
@@ -113,6 +114,34 @@ class CONNFuzzyART(FuzzyART):
             c2_ = 1
         return c1_, c2_
 
+class CONNiKMeans(iKMeans):
+    def step_pred_first_and_second(self, x) -> int:
+        """Predict the label for a single sample.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Data sample.
+
+        Returns
+        -------
+        int
+            Cluster label of the input sample.
+
+        """
+        assert len(self.cluster_centers_) >= 0, "iKmeans module is not fit."
+
+        T = self.get_activation(x.reshape((1,-1))).reshape((-1))
+        c1_ = int(np.argmax(T))
+        if len(T) > 1:
+            T = list(T)
+            T[c1_] = -np.inf
+            c2_ = int(np.argmax(T))
+        else:
+            c2_ = 1
+        return c1_, c2_
+
+
 class CONNSimpleARTMAP(SimpleARTMAP):
     def match_reset_func(
         self,
@@ -159,10 +188,32 @@ class CONNSimpleARTMAP(SimpleARTMAP):
             return False
         return True
 
+    def step_pred_first_and_second(self, x) -> int:
+        """Predict the label for a single sample.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Data sample.
+
+        Returns
+        -------
+        int
+            Cluster label of the input sample.
+
+        """
+        return self.module_a.step_pred_first_and_second(x)
+
 class iCONN:
-    def __init__(self, rho: float = 0.9):
-        module_a = CONNFuzzyART(rho=rho, alpha=1e-10, beta=1.0)
-        self.ARTMAP = CONNSimpleARTMAP(module_a)
+    def __init__(self, method: Literal["Fuzzy", "Kmeans"] = "Fuzzy", rho: float = 0.9, k: int = 10, epsilon: float = 1e-1):
+        assert method in ["Fuzzy", "Kmeans"]
+        self.method = method
+        if self.method == "Fuzzy":
+            module_a = CONNFuzzyART(rho=rho, alpha=1e-10, beta=1.0)
+            self.model = CONNSimpleARTMAP(module_a)
+        else:
+            self.model = CONNiKMeans(K=k, epsilon=epsilon)
+
         self.CADJ = GrowingSquareArray()
         self.CONN = GrowingSquareArray()
         self.INTRA = GrowingArray1D(dtype=float)
@@ -219,9 +270,12 @@ class iCONN:
 
     def add_sample(self, x, y):
         x_prep = complement_code([x])
-        self.ARTMAP = self.ARTMAP.partial_fit(x_prep, [y])
-        bmu1 = self.ARTMAP.module_a.labels_[-1]
-        c_a1_, c_a2_ = self.ARTMAP.module_a.step_pred_first_and_second(x)
+        self.model = self.model.partial_fit(x_prep, [y], match_tracking="MT~")
+        if self.method == "Fuzzy":
+            bmu1 = self.model.module_a.labels_[-1]
+        else:
+            bmu1 = self.sample_cluster_ids_[-1]
+        c_a1_, c_a2_ = self.model.step_pred_first_and_second(x)
         bmu2 = (c_a2_ if bmu1 == c_a1_ else c_a1_)
         self.rev_map[y].add(bmu1)
 
@@ -229,22 +283,34 @@ class iCONN:
         self.CADJ[bmu1, bmu2] += 1
         self.CONN[bmu1, bmu2] = self.CADJ[bmu1, bmu2] + self.CADJ[bmu2, bmu1]
 
-        assert y == self.ARTMAP.map[bmu1]
-        if bmu2 not in self.ARTMAP.map:
-            y2 = int(y)
+        if self.method == "Fuzzy":
+            if bmu2 not in self.model.map:
+                y2 = int(y)
+            else:
+                y2 = self.model.map[bmu2]
         else:
-            y2 = self.ARTMAP.map[bmu2]
+            if bmu2 not in self.model.cluster_id_to_class_:
+                y2 = int(y)
+            else:
+                y2 = self.model.cluster_id_to_class_[bmu2]
 
         self._update_metric(y, y2)
         return self.index
 
     def add_batch(self, X, Y):
-        X_prep = complement_code(X)
-        self.ARTMAP = self.ARTMAP.partial_fit(X_prep, Y)
-        BMU1 = self.ARTMAP.module_a.labels_[-len(Y):]
+        if self.method == "Fuzzy":
+            X_prep = complement_code(X)
+        else:
+            X_prep = X
+        self.model = self.model.partial_fit(X_prep, Y, match_tracking="MT~")
+        if self.method == "Fuzzy":
+            BMU1 = self.model.module_a.labels_[-len(Y):]
+        else:
+            BMU1 = self.model.cluster_labels_[-len(Y):]
+
         for x, y, bmu1 in zip(X_prep, Y, BMU1):
             y = int(y)
-            c_a1_, c_a2_ = self.ARTMAP.module_a.step_pred_first_and_second(x)
+            c_a1_, c_a2_ = self.model.step_pred_first_and_second(x)
             bmu2 = (c_a2_ if bmu1 == c_a1_ else c_a1_)
             self.rev_map[y].add(bmu1)
 
@@ -252,11 +318,17 @@ class iCONN:
             self.CADJ[bmu1, bmu2] += 1
             self.CONN[bmu1, bmu2] = self.CADJ[bmu1, bmu2] + self.CADJ[bmu2, bmu1]
 
-            assert y == self.ARTMAP.map[bmu1]
-            if bmu2 not in self.ARTMAP.map:
-                y2 = int(y)
+            if self.method == "Fuzzy":
+                assert y == self.model.map[bmu1]
+                if bmu2 not in self.model.map:
+                    y2 = int(y)
+                else:
+                    y2 = int(self.model.map[bmu2])
             else:
-                y2 = int(self.ARTMAP.map[bmu2])
+                if bmu2 not in self.model.cluster_id_to_class_:
+                    y2 = int(y)
+                else:
+                    y2 = self.model.cluster_id_to_class_[bmu2]
 
             self._update_metric(y, y2)
         return self.index

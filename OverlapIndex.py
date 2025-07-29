@@ -1,7 +1,8 @@
 import numpy as np
 from artlib import HypersphereARTMAP, FuzzyARTMAP, complement_code
-from typing import Optional, Literal
+from typing import Literal
 from collections import defaultdict
+from iKMeans import iKMeans
 
 
 class GrowingArray1D:
@@ -45,7 +46,7 @@ class GrowingArray1D:
 
 
 def top_two_indices_against_others(T, classes, class_to_clusters, a):
-    T = np.asarray(T)
+    T = np.asarray(T).reshape((-1,))
     result = {}
 
     clusters_a = class_to_clusters.get(a, set())
@@ -76,14 +77,18 @@ class OverlapIndex:
             self,
             rho: float = 0.9,
             r_hat: float = np.inf,
-            ART: Literal["Fuzzy", "Hypersphere"] = "Hypersphere"
+            k: int = 10,
+            epsilon: float = 1e-1,
+            method: Literal["Fuzzy", "Hypersphere", "Kmeans"] = "Hypersphere"
     ):
-        assert ART in ["Fuzzy", "Hypersphere"]
-        if ART == "Fuzzy":
-            self.ARTMAP = FuzzyARTMAP(rho=rho, alpha=1e-10, beta=1.0)
+        assert method in ["Fuzzy", "Hypersphere", "Kmeans"]
+        if method == "Fuzzy":
+            self.model = FuzzyARTMAP(rho=rho, alpha=1e-10, beta=1.0)
+        elif method == "Hypersphere":
+            self.model = HypersphereARTMAP(rho=rho, alpha=1e-10, beta=1.0, r_hat=r_hat)
         else:
-            self.ARTMAP = HypersphereARTMAP(rho=rho, alpha=1e-10, beta=1.0, r_hat=r_hat)
-        self.ART = ART
+            self.model = iKMeans(k, epsilon=epsilon)
+        self.method = method
         self.sparse_adj = defaultdict(lambda: 0)
         self.cluster_cardinality = GrowingArray1D()
         self.rev_map = defaultdict(set)
@@ -93,26 +98,38 @@ class OverlapIndex:
 
     @property
     def module_a(self):
-        return self.ARTMAP.module_a
+        assert self.method != "Kmeans"
+        return self.model.module_a
 
     @property
     def map(self):
-        return self.ARTMAP.map
+        assert self.method != "Kmeans"
+        return self.model.map
 
     def predict_subset_pairs(self, x, y):
-        assert len(self.module_a.W) >= 0, "ART module is not fit."
-        T, _ = zip(*[
-            self.module_a.category_choice(x, w, params=self.module_a.params)
-            for w in self.module_a.W
-        ])
+        if self.method == "Kmeans":
+            T = self.model.get_activation(x.reshape((1, -1)))
+        else:
+            assert len(self.module_a.W) >= 0, "ART module is not fit."
+            T, _ = zip(*[
+                self.module_a.category_choice(x, w, params=self.module_a.params)
+                for w in self.module_a.W
+            ])
+
         classes = list(self.rev_map.keys())
         top2bmu = top_two_indices_against_others(T, classes, self.rev_map, y)
         return top2bmu
 
     def add_sample(self, x, y):
-        x_prep = complement_code([x])
-        self.ARTMAP = self.ARTMAP.partial_fit(x_prep, [y])
-        bmu1 = self.ARTMAP.module_a.labels_[-1]
+        if self.method == "Fuzzy":
+            x_prep = complement_code([x])
+        else:
+            x_prep = x
+        self.model = self.model.partial_fit(x_prep, y.reshape((1,-1)), match_tracking="MT~")
+        if self.method == "Kmeans":
+            bmu1 = self.model.sample_cluster_ids_[-1]
+        else:
+            bmu1 = self.model.module_a.labels_[-1]
         self.rev_map[y].add(bmu1)
 
         self.cluster_cardinality[y] += 1
@@ -144,9 +161,15 @@ class OverlapIndex:
         return self.index
 
     def add_batch(self, X, Y):
-        X_prep = complement_code(X)
-        self.ARTMAP = self.ARTMAP.partial_fit(X_prep, Y)
-        BMU1 = self.ARTMAP.module_a.labels_[-len(Y):]
+        if self.method == "Fuzzy":
+            X_prep = complement_code(X)
+        else:
+            X_prep = X
+        self.model = self.model.partial_fit(X_prep, Y, match_tracking="MT~")
+        if self.method == "Kmeans":
+            BMU1 = self.model.sample_cluster_ids_[-len(Y):]
+        else:
+            BMU1 = self.model.module_a.labels_[-len(Y):]
         for x, y, bmu1 in zip(X_prep, Y, BMU1):
             self.rev_map[y].add(bmu1)
             if y not in self.singleton_index:
