@@ -76,7 +76,8 @@ class OverlapIndex:
             self,
             rho: float = 0.9,
             r_hat: float = np.inf,
-            ART: Literal["Fuzzy", "Hypersphere"] = "Hypersphere"
+            ART: Literal["Fuzzy", "Hypersphere"] = "Hypersphere",
+            match_tracking="MT+",
     ):
         assert ART in ["Fuzzy", "Hypersphere"]
         if ART == "Fuzzy":
@@ -90,6 +91,7 @@ class OverlapIndex:
         self.pairwise_index = defaultdict(lambda: 1.0)
         self.singleton_index = defaultdict(lambda: 1.0)
         self.index = 1.0
+        self.match_tracking = match_tracking
 
     @property
     def module_a(self):
@@ -111,7 +113,7 @@ class OverlapIndex:
 
     def add_sample(self, x, y):
         x_prep = complement_code([x])
-        self.ARTMAP = self.ARTMAP.partial_fit(x_prep, [y])
+        self.ARTMAP = self.ARTMAP.partial_fit(x_prep, [y], match_tracking=self.match_tracking)
         bmu1 = self.ARTMAP.module_a.labels_[-1]
         self.rev_map[y].add(bmu1)
 
@@ -145,7 +147,7 @@ class OverlapIndex:
 
     def add_batch(self, X, Y):
         X_prep = complement_code(X)
-        self.ARTMAP = self.ARTMAP.partial_fit(X_prep, Y)
+        self.ARTMAP = self.ARTMAP.partial_fit(X_prep, Y, match_tracking=self.match_tracking)
         BMU1 = self.ARTMAP.module_a.labels_[-len(Y):]
         for x, y, bmu1 in zip(X_prep, Y, BMU1):
             self.rev_map[y].add(bmu1)
