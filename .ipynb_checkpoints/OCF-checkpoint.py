@@ -68,11 +68,12 @@ class OCF:
             acc_drop_thresh: float = 0.3,
             rho: float = 0.9,
             r_hat: float = np.inf,
-            ART: Literal["Fuzzy", "Hypersphere"] = "Hypersphere"
+            ART: Literal["Fuzzy", "Hypersphere"] = "Hypersphere",
+            match_tracking = "MT+",
     ):
         self.oi_thresh = oi_thresh
         self.acc_drop_thresh = acc_drop_thresh
-        self.iInter = OverlapIndex(rho=rho, r_hat=r_hat, ART=ART)
+        self.iInter = OverlapIndex(rho=rho, r_hat=r_hat, ART=ART, match_tracking=match_tracking)
         self.state = set()
         self.oi_indices = []
         self.acc_drops = []
@@ -170,8 +171,9 @@ class OCF2:
             rho: float = 0.9,
             r_hat: float = np.inf,
             ART: Literal["Fuzzy", "Hypersphere"] = "Hypersphere",
+            match_tracking = "MT+",
     ):
-        self.OI = OverlapIndex(rho=rho, r_hat=r_hat, ART=ART)
+        self.OI = OverlapIndex(rho=rho, r_hat=r_hat, ART=ART, match_tracking=match_tracking)
         self.global_indices = {"overshadowing": 0.0, "forgetting": 0.0}
         self.cluster_indices = defaultdict(lambda: {"overshadowing": 0.0, "forgetting": 0.0})
         self.max_scores: Dict[int, float] = defaultdict(lambda: -np.inf)
