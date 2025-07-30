@@ -160,7 +160,8 @@ class CONNSimpleARTMAP(SimpleARTMAP):
         return True
 
 class iCONN:
-    def __init__(self, rho: float = 0.9):
+    def __init__(self, rho: float = 0.9, match_tracking="MT+"):
+        self.match_tracking=match_tracking
         module_a = CONNFuzzyART(rho=rho, alpha=1e-10, beta=1.0)
         self.ARTMAP = CONNSimpleARTMAP(module_a)
         self.CADJ = GrowingSquareArray()
@@ -219,7 +220,7 @@ class iCONN:
 
     def add_sample(self, x, y):
         x_prep = complement_code([x])
-        self.ARTMAP = self.ARTMAP.partial_fit(x_prep, [y])
+        self.ARTMAP = self.ARTMAP.partial_fit(x_prep, [y], match_tracking=self.match_tracking)
         bmu1 = self.ARTMAP.module_a.labels_[-1]
         c_a1_, c_a2_ = self.ARTMAP.module_a.step_pred_first_and_second(x)
         bmu2 = (c_a2_ if bmu1 == c_a1_ else c_a1_)
@@ -240,7 +241,7 @@ class iCONN:
 
     def add_batch(self, X, Y):
         X_prep = complement_code(X)
-        self.ARTMAP = self.ARTMAP.partial_fit(X_prep, Y)
+        self.ARTMAP = self.ARTMAP.partial_fit(X_prep, Y, match_tracking=self.match_tracking)
         BMU1 = self.ARTMAP.module_a.labels_[-len(Y):]
         for x, y, bmu1 in zip(X_prep, Y, BMU1):
             y = int(y)
