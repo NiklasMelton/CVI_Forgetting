@@ -20,7 +20,7 @@ RHO = 0.9
 MT = "MT~"
 SUB_SAMPLE_SIZE = 1000
 
-def experiment_oi_cnn():
+def experiment_oi_cnn(seed = 0):
 
     # ── 1) DEVICE SELECTION ───────────────────────────────────────────
     if torch.cuda.is_available():
@@ -32,8 +32,8 @@ def experiment_oi_cnn():
     print("Using device:", device)
 
     # ── 2) SEED ───────────────────────────────────────────────────────
-    torch.manual_seed(0)
-    np.random.seed(0)
+    torch.manual_seed(seed)
+    np.random.seed(seed)
 
     # ── 3) DATASETS & DATALOADERS ────────────────────────────────────
     transform = transforms.ToTensor()

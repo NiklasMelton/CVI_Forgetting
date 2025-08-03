@@ -15,7 +15,7 @@ from sklearn.metrics import (
 from tqdm import tqdm
 
 
-def experiment_circle():
+def experiment_circle(seed = 42, n_seeds=10):
     distance_range = np.linspace(-0.1, 0.5, 40)
     radius = 0.15
 
@@ -23,9 +23,9 @@ def experiment_circle():
         radius=radius,
         distance_range=distance_range,
         n_samples_per_class=50,
-        n_seeds=5,
+        n_seeds=n_seeds,
         plot_every_n=5,
-        random_state=42
+        random_state=seed
     )
     path = "results_data/overlap_index/synthetic/circles_data.pickle"
     make_dirs(path)
@@ -145,7 +145,7 @@ def analyze_circle_separation_sweep(
             "perfect_sep": perfect_sep}
     return data
 
-def experiment_ring():
+def experiment_ring(seed = 42, n_seeds=10):
     # Parameters for the inner ring (class 0)
     inner_radius_1 = 0.1
     outer_radius_1 = 0.2
@@ -159,9 +159,9 @@ def experiment_ring():
         base_outer_radius_1=outer_radius_1,
         gap_range=gap_range,
         n_samples_per_class=200,
-        n_seeds=10,
+        n_seeds=n_seeds,
         plot_every_n=5,
-        random_state=42,
+        random_state=seed,
         figsize_per_plot=(3, 3)
     )
     path = "results_data/overlap_index/synthetic/rings_data.pickle"
@@ -292,7 +292,7 @@ def analyze_ring_separation_sweep(
             "perfect_sep": (base_outer_radius_1 - base_inner_radius_1)}
     return data
 
-def experiment_bars():
+def experiment_bars(seed = 42, n_seeds = 10):
     # Parameters for the bar
     bar_width = 0.2
     bar_height = 0.4
@@ -306,9 +306,9 @@ def experiment_bars():
         separation_range=separation_range,
         orientation="vertical",  # or "horizontal"
         n_samples_per_class=50,
-        n_seeds=10,
+        n_seeds=n_seeds,
         plot_every_n=5,
-        random_state=42,
+        random_state=seed,
         figsize_per_plot=(3, 3)
     )
     path = "results_data/overlap_index/synthetic/bars_data.pickle"
@@ -431,7 +431,7 @@ def analyze_bar_separation_sweep(
     return data
 
 
-def experiment_cross():
+def experiment_cross(seed = 42, n_seeds = 10):
     # Parameters for the cross
     bar_width = 0.1
     bar_height = 0.3
@@ -444,9 +444,9 @@ def experiment_cross():
         bar_height=bar_height,
         offset_range=offset_range,
         n_samples_per_class=100,
-        n_seeds=10,
+        n_seeds=n_seeds,
         plot_every_n=5,
-        random_state=42,
+        random_state=seed,
         figsize_per_plot=(3, 3)
     )
     path = "results_data/overlap_index/synthetic/cross_data.pickle"

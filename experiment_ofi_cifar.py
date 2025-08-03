@@ -11,11 +11,12 @@ from OFI import OFI
 from common import make_dirs
 from ActivationKNN import KNN
 
-
-SEED = 42
-torch.manual_seed(SEED)
-np.random.seed(SEED)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.backends.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
 
 
 class CNN(nn.Module):
@@ -160,7 +161,10 @@ def run_condition_cnn(
     return tpr_trace, oi_trace, ofi_trace, val_accuracy_trace
 
 
-def experiment_ofi_cifar_cnn():
+def experiment_ofi_cifar_cnn(seed = 42):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
     transform = transforms.Compose([transforms.ToTensor()])
     train_ds = datasets.CIFAR10(root="./data", train=True, download=True,
                                 transform=transform)
@@ -293,7 +297,10 @@ def run_condition_knn(
     return tpr_trace, oi_trace, ofi_trace, val_accuracy_trace
 
 
-def experiment_ofi_cifar_knn():
+def experiment_ofi_cifar_knn(seed = 42):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
     transform = transforms.Compose([transforms.ToTensor()])
     train_ds = datasets.CIFAR10(root="./data", train=True, download=True, transform=transform)
     test_ds  = datasets.CIFAR10(root="./data", train=False, download=True, transform=transform)

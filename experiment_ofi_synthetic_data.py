@@ -11,17 +11,16 @@ from ActivationKNN import KNN
 from common import make_dirs
 
 
-def experiment_ofi_synthetic_data_cnn():
+def experiment_ofi_synthetic_data_cnn(seed = 42):
 
-    SEED = 42
-    random.seed(SEED)
-    np.random.seed(SEED)
-    tf.random.set_seed(SEED)
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
     tf.config.experimental.enable_op_determinism()
 
     def build_mlp(input_dim: int = 2, n_classes: int = 3
                   ) -> Tuple[keras.Model, keras.Model]:
-        init = keras.initializers.GlorotUniform(seed=SEED)
+        init = keras.initializers.GlorotUniform(seed=seed)
         inp = keras.Input(shape=(input_dim,), name="input")
         x = keras.layers.Dense(16, activation="relu", kernel_initializer=init,
                                name="dense1")(inp)
@@ -109,7 +108,7 @@ def experiment_ofi_synthetic_data_cnn():
             test_size=600,
             overlap=ov,
             ordered=od,
-            random_state=SEED
+            random_state=seed
         )
         cond = ("Overlapped, " if ov else "Separated, ") + (
             "Ordered" if od else "Shuffled")
@@ -148,11 +147,10 @@ def experiment_ofi_synthetic_data_cnn():
         "Saved per-batch TPR, OverlapIndex, and OFI states to cf2_batch_traces.npz")
 
 
-def experiment_ofi_synthetic_data_knn():
+def experiment_ofi_synthetic_data_knn(seed = 42):
 
-    SEED = 42
-    random.seed(SEED)
-    np.random.seed(SEED)
+    random.seed(seed)
+    np.random.seed(seed)
 
     def run_condition(
             X_train: np.ndarray,
@@ -260,7 +258,7 @@ def experiment_ofi_synthetic_data_knn():
             test_size=600,
             overlap=ov,
             ordered=od,
-            random_state=SEED
+            random_state=seed
         )
         cond = ("Overlapped, " if ov else "Separated, ") + (
             "Ordered" if od else "Shuffled")
