@@ -48,7 +48,7 @@ class OFI:
 
     ) -> Tuple[float, float]:
         """
-        Update the OCF with a training batch and evaluation result.
+        Update the OFI with a training batch and evaluation result.
 
         (overshadowing, forgetting, residual) as floats in [0, 1]
         """

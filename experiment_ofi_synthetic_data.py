@@ -67,7 +67,7 @@ def experiment_ofi_cnn_synthetic_data():
 
         tpr_trace: List[List[float]] = []
         oi_trace: List[float] = []
-        ocf_trace: List[Tuple[float, float]] = []
+        ofi_trace: List[Tuple[float, float]] = []
 
         for x_b, y_b in train_ds:
             model.train_on_batch(x_b, y_b)
@@ -93,10 +93,10 @@ def experiment_ofi_cnn_synthetic_data():
                 y_true_eval=y_test,
                 y_scores_eval=logits
             )
-            ocf_trace.append((O, F))
+            ofi_trace.append((O, F))
             oi_trace.append(cf_detector.OI.index)
 
-        return tpr_trace, oi_trace, ocf_trace
+        return tpr_trace, oi_trace, ofi_trace
 
 
     traces_tpr: Dict[str, List[List[float]]] = {}
@@ -114,7 +114,7 @@ def experiment_ofi_cnn_synthetic_data():
         cond = ("Overlapped, " if ov else "Separated, ") + (
             "Ordered" if od else "Shuffled")
         print(f"→ running condition {cond}")
-        tpr, oi_idx, ocf_states = run_condition(
+        tpr, oi_idx, ofi_states = run_condition(
             X_tr, y_tr, X_te, y_te,
             batch_size=20,
             rho=0.95,
@@ -123,10 +123,10 @@ def experiment_ofi_cnn_synthetic_data():
         )
         traces_tpr[cond] = tpr
         traces_oi[cond] = oi_idx
-        traces_state[cond] = ocf_states
+        traces_state[cond] = ofi_states
 
     # Save as structured arrays for traceability
-    path = "results_data/OFI/synthetic/ocf_cnn_traces_synthetic_data.npz"
+    path = "results_data/OFI/synthetic/ofi_cnn_traces_synthetic_data.npz"
     make_dirs(path)
     np.savez(
         path,
@@ -145,7 +145,7 @@ def experiment_ofi_cnn_synthetic_data():
     )
 
     print(
-        "Saved per-batch TPR, OverlapIndex, and OCF2 states to cf2_batch_traces.npz")
+        "Saved per-batch TPR, OverlapIndex, and OFI states to cf2_batch_traces.npz")
 
 
 def experiment_ofi_knn_synthetic_data():
@@ -167,7 +167,7 @@ def experiment_ofi_knn_synthetic_data():
     ) -> Tuple[
         List[List[float]],  # tpr_trace
         List[float],  # oi_trace
-        List[Tuple[float, float]],  # global ocf_trace
+        List[Tuple[float, float]],  # global ofi_trace
         List[List[float]],  # per-cluster forgetting
         List[List[float]]  # per-cluster overshadowing
     ]:
@@ -187,7 +187,7 @@ def experiment_ofi_knn_synthetic_data():
 
         tpr_trace: List[List[float]] = []
         oi_trace: List[float] = []
-        ocf_trace: List[Tuple[float, float]] = []
+        ofi_trace: List[Tuple[float, float]] = []
         cluster_forgetting_trace: List[List[float]] = []
         cluster_overshadowing_trace: List[List[float]] = []
 
@@ -216,7 +216,7 @@ def experiment_ofi_knn_synthetic_data():
                 tprs.append(tp / (tp + fn) if (tp + fn) > 0 else 0.0)
             tpr_trace.append(tprs)
 
-            # 4) global OCF2 update
+            # 4) global OFI update
             x_b_prep = cf_detector.OI.ARTMAP.module_a.prepare_data(x_b)
             O, F = cf_detector.add_batch(
                 X_train=x_b_prep,
@@ -225,7 +225,7 @@ def experiment_ofi_knn_synthetic_data():
                 y_true_eval=y_test,
                 y_scores_eval=scores
             )
-            ocf_trace.append((O, F))
+            ofi_trace.append((O, F))
 
             # 5) Overlap Index
             oi_trace.append(cf_detector.OI.index)
@@ -243,7 +243,7 @@ def experiment_ofi_knn_synthetic_data():
         return (
             tpr_trace,
             oi_trace,
-            ocf_trace,
+            ofi_trace,
             cluster_forgetting_trace,
             cluster_overshadowing_trace
         )
@@ -266,7 +266,7 @@ def experiment_ofi_knn_synthetic_data():
             "Ordered" if od else "Shuffled")
         print(f"→ running condition {cond}")
 
-        (tpr, oi_idx, ocf_states,
+        (tpr, oi_idx, ofi_states,
          cluster_f, cluster_o) = run_condition(
             X_tr, y_tr, X_te, y_te,
             batch_size=20,
@@ -278,11 +278,11 @@ def experiment_ofi_knn_synthetic_data():
 
         traces_tpr[cond] = np.array(tpr, dtype=float)
         traces_oi[cond] = np.array(oi_idx, dtype=float)
-        traces_state[cond] = np.array(ocf_states, dtype=float)
+        traces_state[cond] = np.array(ofi_states, dtype=float)
         traces_forg[cond] = np.array(cluster_f, dtype=float)
         traces_over[cond] = np.array(cluster_o, dtype=float)
 
-    path = "results_data/OCF/synthetic/ocf_knn_traces_synthetic_data.npz"
+    path = "results_data/OFI/synthetic/ofi_knn_traces_synthetic_data.npz"
     make_dirs(path)
     np.savez(
         path,
@@ -308,7 +308,7 @@ def experiment_ofi_knn_synthetic_data():
         sp_sh_over=traces_over["Separated, Shuffled"],
     )
 
-    print("Saved KNN-based OCF2 traces with per-cluster and global metrics.")
+    print("Saved KNN-based OFI traces with per-cluster and global metrics.")
 
 
 if __name__ == "__main__":

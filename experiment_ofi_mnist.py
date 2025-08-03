@@ -59,7 +59,7 @@ def run_condition_cnn(
 
     tpr_trace: List[List[float]] = []
     oi_trace: List[float] = []
-    ocf_trace: List[Tuple[float, float]] = []
+    ofi_trace: List[Tuple[float, float]] = []
     val_accuracy_trace: List[float] = []
 
     y_test_np = y_test.numpy()
@@ -122,7 +122,7 @@ def run_condition_cnn(
             tprs.append(tp / (tp + fn) if (tp + fn) > 0 else 0.0)
         tpr_trace.append(tprs)
 
-        # 4) OCF update
+        # 4) OFI update
         indices = np.random.choice(batch_size, sub_batch_size, replace=False)
         O, F = cf_detector.add_batch(
             X_train=x_b[indices].cpu().numpy().reshape(sub_batch_size, -1),
@@ -131,10 +131,10 @@ def run_condition_cnn(
             y_true_eval=y_test_np,
             y_scores_eval=logits
         )
-        ocf_trace.append((O, F))
+        ofi_trace.append((O, F))
         oi_trace.append(cf_detector.OI.index)
 
-    return tpr_trace, oi_trace, ocf_trace, val_accuracy_trace
+    return tpr_trace, oi_trace, ofi_trace, val_accuracy_trace
 
 
 def experiment_cnn():
@@ -214,7 +214,7 @@ def run_condition_knn(
 
     tpr_trace: List[List[float]] = []
     oi_trace:  List[float] = []
-    ocf_trace: List[Tuple[float, float]] = []
+    ofi_trace: List[Tuple[float, float]] = []
     val_accuracy_trace: List[float] = []
 
     y_test_np = y_test.numpy()
@@ -254,7 +254,7 @@ def run_condition_knn(
             tprs.append(tp / (tp + fn) if (tp + fn) > 0 else 0.0)
         tpr_trace.append(tprs)
 
-        # 3) compute OCF indices
+        # 3) compute OFI indices
         indices = np.random.choice(batch_size, sub_batch_size, replace=False)
         y_scores = clf.activation(X_test_np)
         O, F = cf_detector.add_batch(
@@ -264,10 +264,10 @@ def run_condition_knn(
             y_true_eval   = y_test_np,
             y_scores_eval = y_scores
         )
-        ocf_trace.append((O, F))
+        ofi_trace.append((O, F))
         oi_trace.append(cf_detector.OI.index)
 
-    return tpr_trace, oi_trace, ocf_trace, val_accuracy_trace
+    return tpr_trace, oi_trace, ofi_trace, val_accuracy_trace
 
 
 def experiment_knn():

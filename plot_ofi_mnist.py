@@ -52,7 +52,7 @@ def plot_ofi_mnist():
             prefix = order
             tpr = data[f"{prefix}_tpr"]
             acc = data[f"{prefix}_accuracy"]
-            ocf = data[f"{prefix}_states"]
+            ofi = data[f"{prefix}_states"]
             x = np.arange(len(acc))
 
             if row == 0:
@@ -86,15 +86,15 @@ def plot_ofi_mnist():
                 if row == 0 and col == 0:
                     tpr_lines.append(line)
 
-            # Accuracy and OCF2
+            # Accuracy and OFI
             acc_line, = ax.plot(x, acc, color=colors[-1], linewidth=2)
-            o_line, = ax2.plot(x, ocf[:, 0], linestyle="--", color=colors[-2], linewidth=2)
-            f_line, = ax2.plot(x, ocf[:, 1], linestyle="-.", color=colors[-3], linewidth=2)
+            o_line, = ax2.plot(x, ofi[:, 0], linestyle="--", color=colors[-2], linewidth=2)
+            f_line, = ax2.plot(x, ofi[:, 1], linestyle="-.", color=colors[-3], linewidth=2)
 
             if row == 1:
                 ax_bot.plot(x, acc, color=colors[-1], linewidth=2)
-                ax_bot2.plot(x, ocf[:, 0], linestyle="--", color=colors[-2], linewidth=2)
-                ax_bot2.plot(x, ocf[:, 1], linestyle="-.", color=colors[-3], linewidth=2)
+                ax_bot2.plot(x, ofi[:, 0], linestyle="--", color=colors[-2], linewidth=2)
+                ax_bot2.plot(x, ofi[:, 1], linestyle="-.", color=colors[-3], linewidth=2)
 
                 ax.set_ylim(0.6, 1.0)
                 ax2.set_ylim(0.6, 1.0)

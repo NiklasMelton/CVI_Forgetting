@@ -5,7 +5,7 @@ from common import make_dirs
 def plot_cnn_traces():
 
     # Load data
-    path = "results_data/OFI/synthetic/ocf_cnn_traces_synthetic_data.npz"
+    path = "results_data/OFI/synthetic/ofi_cnn_traces_synthetic_data.npz"
     data = np.load(path)
 
     conditions = ['Separated, Ordered', 'Overlapped, Ordered', 'Separated, Shuffled',
@@ -87,7 +87,7 @@ def plot_cnn_traces():
 def plot_knn_traces():
 
     # Load data
-    path = "results_data/OFI/synthetic/ocf_knn_traces_synthetic_data.npz"
+    path = "results_data/OFI/synthetic/ofi_knn_traces_synthetic_data.npz"
     data = np.load(path)
 
     conditions = ['Separated, Ordered', 'Overlapped, Ordered', 'Separated, Shuffled',
