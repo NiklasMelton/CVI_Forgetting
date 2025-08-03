@@ -6,7 +6,7 @@ from synthetic_datasets import generate_circle_dataset, generate_bar_dataset, \
     generate_ring_dataset, generate_cross_dataset
 from common import make_dirs
 
-def plot_combined_indices():
+def plot_oi_synthetic_combined_indices():
     plt.rcParams.update({
         'font.size': 14,
         'axes.titlesize': 16,
@@ -283,5 +283,5 @@ def plot_combined_exemplars():
 
 
 if __name__ == "__main__":
-    plot_combined_indices()
+    plot_oi_synthetic_combined_indices()
     plot_combined_exemplars()

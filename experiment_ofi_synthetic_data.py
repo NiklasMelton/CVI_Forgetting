@@ -11,7 +11,7 @@ from ActivationKNN import KNN
 from common import make_dirs
 
 
-def experiment_ofi_cnn_synthetic_data():
+def experiment_ofi_synthetic_data_cnn():
 
     SEED = 42
     random.seed(SEED)
@@ -148,7 +148,7 @@ def experiment_ofi_cnn_synthetic_data():
         "Saved per-batch TPR, OverlapIndex, and OFI states to cf2_batch_traces.npz")
 
 
-def experiment_ofi_knn_synthetic_data():
+def experiment_ofi_synthetic_data_knn():
 
     SEED = 42
     random.seed(SEED)
@@ -312,5 +312,5 @@ def experiment_ofi_knn_synthetic_data():
 
 
 if __name__ == "__main__":
-    experiment_ofi_cnn_synthetic_data()
-    experiment_ofi_knn_synthetic_data()
+    experiment_ofi_synthetic_data_cnn()
+    experiment_ofi_synthetic_data_knn()

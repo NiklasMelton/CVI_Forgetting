@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from common import make_dirs
 
-def plot_cnn_traces():
+def plot_ofi_synthetic_cnn_traces():
 
     # Load data
     path = "results_data/OFI/synthetic/ofi_cnn_traces_synthetic_data.npz"
@@ -84,7 +84,7 @@ def plot_cnn_traces():
                 bbox_inches='tight')
 
 
-def plot_knn_traces():
+def plot_ofi_synthetic_knn_traces():
 
     # Load data
     path = "results_data/OFI/synthetic/ofi_knn_traces_synthetic_data.npz"
@@ -163,5 +163,5 @@ def plot_knn_traces():
                 bbox_inches='tight')
 
 if __name__ == "__main__":
-    plot_cnn_traces()
-    plot_knn_traces()
+    plot_ofi_synthetic_cnn_traces()
+    plot_ofi_synthetic_knn_traces()

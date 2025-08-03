@@ -137,7 +137,7 @@ def run_condition_cnn(
     return tpr_trace, oi_trace, ofi_trace, val_accuracy_trace
 
 
-def experiment_cnn():
+def experiment_ofi_mnist_cnn():
     transform = transforms.ToTensor()
     train_ds = datasets.MNIST(root="./data", train=True, download=True,
                               transform=transform)
@@ -270,7 +270,7 @@ def run_condition_knn(
     return tpr_trace, oi_trace, ofi_trace, val_accuracy_trace
 
 
-def experiment_knn():
+def experiment_ofi_mnist_knn():
     transform = transforms.ToTensor()
     train_ds = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
     test_ds  = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
@@ -327,5 +327,5 @@ def experiment_knn():
 
 
 if __name__ == "__main__":
-    experiment_cnn()
-    experiment_knn()
+    experiment_ofi_mnist_cnn()
+    experiment_ofi_mnist_knn()

@@ -13,7 +13,7 @@ from common import make_dirs
 
 
 
-def plot_combined_indices():
+def plot_oi_mnist_combined_indices():
     plt.rcParams.update({
         'font.size': 12,
         'axes.titlesize': 14,
@@ -332,7 +332,7 @@ def plot_embeddings():
 
 
 if __name__ == "__main__":
-    plot_combined_indices()
+    plot_oi_mnist_combined_indices()
     plot_cnn_architecture()
     plot_embeddings()
 

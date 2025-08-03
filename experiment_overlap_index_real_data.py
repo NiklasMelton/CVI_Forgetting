@@ -20,7 +20,7 @@ RHO = 0.9
 MT = "MT~"
 SUB_SAMPLE_SIZE = 1000
 
-def CNN_experiment():
+def experiment_oi_cnn():
 
     # ── 1) DEVICE SELECTION ───────────────────────────────────────────
     if torch.cuda.is_available():
@@ -223,3 +223,6 @@ def CNN_experiment():
         embeddings,
         open(path, "wb")
     )
+
+if __name__ == "__main__":
+    experiment_oi_cnn()
