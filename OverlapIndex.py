@@ -155,7 +155,7 @@ class OverlapIndex:
                 self.singleton_index[y] = 1.0
 
             self.cluster_cardinality[y] += 1
-            top2bmu = self.predict_subset_pairs(x, y)
+            top2bmu = self.predict_subset_pairs(x, y) # eq 1 & 2
             
             for b in self.rev_map.keys():
                 bmu2 = int(bmu1)
@@ -167,17 +167,17 @@ class OverlapIndex:
                         else:
                             bmu2 = bmu2_
                     if bmu2 in self.rev_map[b]:
-                        self.sparse_adj[(y, b)] += 1
+                        self.sparse_adj[(y, b)] += 1  # eq 3
                     self.pairwise_index[(y, b)] = 1.-(
                         float(self.sparse_adj[(y, b)]) /
                         float(self.cluster_cardinality[y])
-                    )
+                    ) # eq 4
         unique_y = np.unique(Y)
         if len(self.rev_map) > 1:
             for y in unique_y:
                 self.singleton_index[y] = min(
                     [self.pairwise_index[(y, b)] for b in self.rev_map.keys() if b != y]
-                )
-            self.index = np.mean(list(self.singleton_index.values()))
+                ) # eq 5
+            self.index = np.mean(list(self.singleton_index.values())) # eq 6
         return self.index
 
