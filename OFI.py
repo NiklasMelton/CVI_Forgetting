@@ -64,7 +64,7 @@ class OFI:
 
         # 2. Compute recall and score changes per class
         curr_recalls = compute_recall(y_true_eval, y_pred_eval)
-        mean_scores = compute_mean_scores(y_scores_eval, y_true_eval)
+        mean_scores = compute_mean_scores(y_scores_eval, y_true_eval) # eq 7
 
         recall_drops = defaultdict(float)
         score_drops = defaultdict(float)
@@ -72,9 +72,9 @@ class OFI:
         for cls, curr_r in curr_recalls.items():
             prev_best = self.max_recalls[cls]
             self.max_recalls[cls] = max(prev_best, curr_r)
-            recall_drops[cls] = self.max_recalls[cls] - curr_r
+            recall_drops[cls] = self.max_recalls[cls] - curr_r # eq 8
 
-            # allow for rebalancing if recall isn't degraded
+            # allow for rebalancing if recall isn't degraded # eq 9 & 10
             if curr_r >= prev_best:
                 self.max_scores[cls] = mean_scores[cls]
                 if np.isinf(self.min_scores[cls]):
@@ -85,14 +85,17 @@ class OFI:
             score_span = self.max_scores[cls] - self.min_scores[cls]
             if score_span > 0:
                 score_drops[cls] = (
-                    self.max_scores[cls] - mean_scores[cls]
+                    self.max_scores[cls] - mean_scores[cls] # eq 11
                 )/score_span
             else:
                 score_drops[cls] = 0.0
 
 
         # 3. compute indices
-        Fs: Dict[int, float] = {c: recall_drops[c]*score_drops[c] for c in recall_drops}
+        Fs: Dict[int, float] = {
+            c: recall_drops[c]*score_drops[c]
+            for c in recall_drops
+        } # eq 12
 
 
         Os: Dict[int, float] = {
@@ -100,16 +103,17 @@ class OFI:
                 (1.-self.OI.singleton_index[c])
             )*(1-score_drops[c])
             for c in recall_drops.keys()
-        }
+        } # eq 13
+
         for c in recall_drops:
-            FO_sum = Fs[c]+Os[c]
+            FO_sum = Fs[c]+Os[c] # eq 14
             if FO_sum > 0:
                 ratio = recall_drops[c]/FO_sum
-                Fs[c] = ratio*Fs[c]
-                Os[c] = ratio*Os[c]
+                Fs[c] = ratio*Fs[c] # eq 15
+                Os[c] = ratio*Os[c] # eq 16
 
-        F = float(np.mean(list(Fs.values())))
-        O = float(np.mean(list(Os.values())))
+        F = float(np.mean(list(Fs.values()))) # eq 17
+        O = float(np.mean(list(Os.values()))) # eq 18
 
         for c in curr_recalls.keys():
             self.cluster_indices[c]["overshadowing"] = Os[c]
