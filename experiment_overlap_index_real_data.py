@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torchvision
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from OverlapIndex import OverlapIndex
 from iCONN_index import iCONN
 from sklearn.metrics import silhouette_score
@@ -12,13 +12,7 @@ import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
 from artlib import normalize
 import pickle
-import os
-
-def make_dirs(path):
-    dir_path = os.path.dirname(path)
-
-    if dir_path and not os.path.exists(dir_path):
-        os.makedirs(dir_path, exist_ok=True)
+from common import make_dirs
 
 
 BATCH_SIZE = 250

@@ -2,7 +2,7 @@ from synthetic_datasets import generate_circle_dataset, generate_bar_dataset, \
     generate_ring_dataset, generate_cross_dataset
 from OverlapIndex import OverlapIndex
 from iCONN_index import iCONN
-import os
+from common import make_dirs
 import numpy as np
 from artlib import normalize
 import pickle
@@ -13,13 +13,6 @@ from sklearn.metrics import (
     calinski_harabasz_score
 )
 from tqdm import tqdm
-
-
-def make_dirs(path):
-    dir_path = os.path.dirname(path)
-
-    if dir_path and not os.path.exists(dir_path):
-        os.makedirs(dir_path, exist_ok=True)
 
 
 def experiment_circle():
@@ -34,7 +27,7 @@ def experiment_circle():
         plot_every_n=5,
         random_state=42
     )
-    path = "result_data/synthetic/circles_data.pickle"
+    path = "result_data/overlap_index/synthetic/circles_data.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -171,7 +164,7 @@ def experiment_ring():
         random_state=42,
         figsize_per_plot=(3, 3)
     )
-    path = "result_data/synthetic/rings_data.pickle"
+    path = "result_data/overlap_index/synthetic/rings_data.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -318,7 +311,7 @@ def experiment_bars():
         random_state=42,
         figsize_per_plot=(3, 3)
     )
-    path = "result_data/synthetic/bars_data.pickle"
+    path = "result_data/overlap_index/synthetic/bars_data.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -456,7 +449,7 @@ def experiment_cross():
         random_state=42,
         figsize_per_plot=(3, 3)
     )
-    path = "result_data/synthetic/cross_data.pickle"
+    path = "result_data/overlap_index/synthetic/cross_data.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 

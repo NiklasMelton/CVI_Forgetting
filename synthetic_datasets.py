@@ -1,4 +1,7 @@
 import numpy as np
+from sklearn.datasets import make_blobs
+from sklearn.model_selection import train_test_split
+from typing import Tuple
 
 def generate_ring_dataset(
     inner_radius_1, outer_radius_1,
@@ -253,3 +256,73 @@ def generate_cross_dataset(
 
     return X, y
 
+
+def generate_synthetic_blobs(
+    n_samples: int = 3600,
+    test_size: int = 600,
+    overlap: bool = False,
+    ordered: bool = False,
+    random_state: int = None
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Generate a 2D three-class blob dataset, split into train/test, then
+    optionally sort the TRAIN set for the 'cf' condition.
+
+    Parameters
+    ----------
+    n_samples : int
+        Total number of samples (train + test).
+    test_size : int
+        Number of test samples (will be stratified).
+    overlap: bool
+        Two overlapped clusters if true, separated otherwise
+    ordered: bool
+        class-ordered if true
+    random_state : int, optional
+        Seed for reproducibility.
+
+    Returns
+    -------
+    X_train, y_train, X_test, y_test
+    """
+    if test_size >= n_samples:
+        raise ValueError("test_size must be smaller than n_samples")
+
+    # choose centers/std based on overlap vs. others
+    if overlap:
+        centers = np.array([[0.0, 0.0],
+                            [5.0, 4.2],
+                            [4.2, 5.0]])
+        cluster_std = [0.5, 0.5, 0.5]
+    else:
+        centers = np.array([[0.0, 0.0],
+                            [5.0, 0.0],
+                            [0.0, 5.0]])
+        cluster_std = 0.5
+
+    # 1) generate all samples
+    X, y = make_blobs(
+        n_samples=n_samples,
+        centers=centers,
+        cluster_std=cluster_std,
+        random_state=random_state
+    )
+
+    # 2) scale to [0,1]^2
+    X_min, X_max = X.min(0), X.max(0)
+    X = (X - X_min) / (X_max - X_min)
+
+    # 3) train-test split (stratified & randomized)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y,
+        test_size=test_size,
+        stratify=y,
+        random_state=random_state
+    )
+
+    # 4) if CF scenario, sort train by class label
+    if ordered:
+        order = np.argsort(y_train)
+        X_train, y_train = X_train[order], y_train[order]
+
+    return X_train, y_train, X_test, y_test

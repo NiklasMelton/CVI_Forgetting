@@ -1,15 +1,16 @@
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Patch
+from matplotlib.colors import ListedColormap
 import numpy as np
 import pickle
-import os
 
+from sklearn.manifold import TSNE
+from scipy.spatial import procrustes
 
-def make_dirs(path):
-    dir_path = os.path.dirname(path)
+from tqdm import tqdm
 
-    if dir_path and not os.path.exists(dir_path):
-        os.makedirs(dir_path, exist_ok=True)
+from common import make_dirs
+
 
 
 def plot_combined_indices():
@@ -216,7 +217,119 @@ def plot_cnn_architecture():
     plt.savefig(path, bbox_inches='tight')
 
 def plot_embeddings():
-    pass
+
+    plt.rcParams.update({
+        'font.size': 12,
+        'axes.titlesize': 14,
+        'axes.labelsize': 12,
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
+        'legend.fontsize': 14,
+        'legend.title_fontsize': 11
+    })
+
+    # Color Universal Design (CUD) 10-color palette
+    CUD_COLORS = [
+        "#E69F00",  # orange
+        "#56B4E9",  # sky blue
+        "#009E73",  # bluish green
+        "#F0E442",  # yellow
+        "#0072B2",  # blue
+        "#D55E00",  # vermillion
+        "#CC79A7",  # reddish purple
+        "#999999",  # gray
+        "#000000",  # black
+        "#A6761D"  # brown (from ColorBrewer extension)
+    ]
+
+    custom_cmap = ListedColormap(CUD_COLORS)
+
+    # --- Brute-force mirrored Procrustes alignment ---
+    def best_procrustes_alignment(X, X_ref):
+        variants = [
+            X,
+            X * np.array([-1, 1]),  # flip X
+            X * np.array([1, -1]),  # flip Y
+            X * -1  # flip both
+        ]
+
+        best_X_aligned = None
+        best_disparity = float("inf")
+
+        for variant in variants:
+            _, mtx2, disparity = procrustes(X_ref, variant)
+            if disparity < best_disparity:
+                best_disparity = disparity
+                best_X_aligned = mtx2
+
+        return best_X_aligned
+
+    # --- Load the data ---
+    path = "results_data/overlap_index/real/mnist_embeddings.pickle"
+    data = pickle.load(open(path, "rb"))
+
+    # Define keys and number of entries
+    keys = ["X1", "X2", "X3"]
+    n_rows = len(keys)
+    n_cols = len(data)
+
+    # Define readable labels
+    key_mapping = {
+        "X1": "Pool1",
+        "X2": "Pool2",
+        "X3": "FC1",
+    }
+    entry_mapping = {
+        0: "Before Training",
+        1: "Mid Training",
+        2: "After Training"
+    }
+
+    # Set up the matplotlib figure
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 4 * n_rows))
+    axes = np.atleast_2d(axes)
+
+    # Loop through keys and data entries
+    for i, key in tqdm(enumerate(keys), desc="keys", total=n_rows):  # row index
+        ref_layout = None  # to hold the reference layout for this key
+        for j in tqdm(range(n_cols), desc="entries", leave=False):  # column index
+            y = data[j]["y"]
+            X = data[j][key]
+
+            # Reduce dimensionality with t-SNE
+            tsne = TSNE(n_components=2, perplexity=30, init='pca', learning_rate='auto',
+                        max_iter=1000, random_state=0)
+            X_tsne = tsne.fit_transform(X)
+
+            # Align to first layout for this key
+            if j == 0:
+                ref_layout = X_tsne  # anchor layout
+                layout_aligned = X_tsne
+            else:
+                layout_aligned = best_procrustes_alignment(X_tsne, ref_layout)
+
+            # Plot
+            ax = axes[i, j]
+            scatter = ax.scatter(layout_aligned[:, 0], layout_aligned[:, 1], alpha=0.6,
+                                 s=5, c=y, cmap=custom_cmap)
+            title = f"{key_mapping[key]}, {entry_mapping[j]}"
+            ax.set_title(title)
+            ax.set_xlabel("tSNE-1")
+            ax.set_ylabel("tSNE-2")
+
+    # Create legend handles for class colors (0–9)
+    legend_elements = [Patch(color=CUD_COLORS[i], label=f"Class {i}") for i in
+                       range(10)]
+
+    # Add legend to the top center of the figure
+    fig.legend(handles=legend_elements, loc="upper center", ncol=5,
+               bbox_to_anchor=(0.5, 1.03))
+
+    plt.tight_layout(rect=[0, 0, 1, 0.97])  # adjust layout to make space for legend
+    path = "figures/overlap_index/real/mnist_embeddings.png"
+    make_dirs(path)
+    fig.savefig(path, bbox_inches='tight')
+
 
 if __name__ == "__main__":
     plot_combined_indices()

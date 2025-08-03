@@ -4,13 +4,7 @@ import pickle
 from matplotlib.ticker import ScalarFormatter, FixedLocator
 from synthetic_datasets import generate_circle_dataset, generate_bar_dataset, \
     generate_ring_dataset, generate_cross_dataset
-import os
-
-def make_dirs(path):
-    dir_path = os.path.dirname(path)
-
-    if dir_path and not os.path.exists(dir_path):
-        os.makedirs(dir_path, exist_ok=True)
+from common import make_dirs
 
 def plot_combined_indices():
     plt.rcParams.update({
@@ -36,10 +30,10 @@ def plot_combined_indices():
 
     # Filenames and subplot titles
     files = [
-        ("result_data/synthetic/circles_data.pickle", "Circles"),
-        ("result_data/synthetic/rings_data.pickle", "Rings"),
-        ("result_data/synthetic/bars_data.pickle", "Bars"),
-        ("result_data/synthetic/cross_data.pickle", "Cross"),
+        ("result_data/overlap_index/synthetic/circles_data.pickle", "Circles"),
+        ("result_data/overlap_index/synthetic/rings_data.pickle", "Rings"),
+        ("result_data/overlap_index/synthetic/bars_data.pickle", "Bars"),
+        ("result_data/overlap_index/synthetic/cross_data.pickle", "Cross"),
     ]
 
     # Score labels and keys
@@ -131,8 +125,6 @@ def plot_combined_indices():
 
 
 def plot_combined_exemplars():
-    import matplotlib.pyplot as plt
-    import numpy as np
 
     plt.rcParams.update({
         'font.size': 14,
