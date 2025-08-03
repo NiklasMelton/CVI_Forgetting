@@ -100,3 +100,6 @@ def plot_ofi_cifar():
     path = "figures/OFI/real/cifar_ofi_cnn_knn.png"
     make_dirs(path)
     plt.savefig(path, bbox_inches='tight')
+
+if __name__ == "__main__":
+    plot_ofi_cifar()

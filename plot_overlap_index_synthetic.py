@@ -30,10 +30,10 @@ def plot_oi_synthetic_combined_indices():
 
     # Filenames and subplot titles
     files = [
-        ("result_data/overlap_index/synthetic/circles_data.pickle", "Circles"),
-        ("result_data/overlap_index/synthetic/rings_data.pickle", "Rings"),
-        ("result_data/overlap_index/synthetic/bars_data.pickle", "Bars"),
-        ("result_data/overlap_index/synthetic/cross_data.pickle", "Cross"),
+        ("results_data/overlap_index/synthetic/circles_data.pickle", "Circles"),
+        ("results_data/overlap_index/synthetic/rings_data.pickle", "Rings"),
+        ("results_data/overlap_index/synthetic/bars_data.pickle", "Bars"),
+        ("results_data/overlap_index/synthetic/cross_data.pickle", "Cross"),
     ]
 
     # Score labels and keys

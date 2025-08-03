@@ -27,7 +27,7 @@ def experiment_circle():
         plot_every_n=5,
         random_state=42
     )
-    path = "result_data/overlap_index/synthetic/circles_data.pickle"
+    path = "results_data/overlap_index/synthetic/circles_data.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -151,7 +151,7 @@ def experiment_ring():
     outer_radius_1 = 0.2
 
     # Sweep gap values between inner and outer ring (class 1)
-    gap_range = np.linspace(-0.2, 0.2, 40)  # e.g., 30 values from 0.01 to 0.3
+    gap_range = np.linspace(-0.2, 0.2, 40)
 
     # Run the ring separation analysis
     data = analyze_ring_separation_sweep(
@@ -164,7 +164,7 @@ def experiment_ring():
         random_state=42,
         figsize_per_plot=(3, 3)
     )
-    path = "result_data/overlap_index/synthetic/rings_data.pickle"
+    path = "results_data/overlap_index/synthetic/rings_data.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -311,7 +311,7 @@ def experiment_bars():
         random_state=42,
         figsize_per_plot=(3, 3)
     )
-    path = "result_data/overlap_index/synthetic/bars_data.pickle"
+    path = "results_data/overlap_index/synthetic/bars_data.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -449,7 +449,7 @@ def experiment_cross():
         random_state=42,
         figsize_per_plot=(3, 3)
     )
-    path = "result_data/overlap_index/synthetic/cross_data.pickle"
+    path = "results_data/overlap_index/synthetic/cross_data.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
