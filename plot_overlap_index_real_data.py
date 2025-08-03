@@ -110,7 +110,8 @@ def plot_oi_mnist_combined_indices():
     ax_bottom.set_xlabel("Batch Index")
     ax_top.set_ylabel("Index Values")
     ax_bottom.set_ylabel("Index Values")
-    fig.suptitle('Overlap and CONN Index for MNIST at Each Feature Level')
+    fig.suptitle('Overlap, Silhouette, and CONN Index\nfor MNIST at Each Feature '
+                 'Level')
 
     # Legends
     # Combine and split legend handles
