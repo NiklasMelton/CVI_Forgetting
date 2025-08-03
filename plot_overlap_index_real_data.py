@@ -142,7 +142,7 @@ def plot_oi_mnist_combined_indices():
 
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.05)
-    path = "figures/overlap_index/real/mnist_oi_accuracy_revised.png"
+    path = "figures/overlap_index/real/mnist_oi_traces.png"
     make_dirs(path)
     plt.savefig(path, bbox_inches='tight')
 

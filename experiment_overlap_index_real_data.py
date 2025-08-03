@@ -144,9 +144,9 @@ def experiment_oi_cnn():
 
 
                     if batch_idx in [0, 119, 239]:
-                        embeddings.append({"X1": X1_p, "X2": X2_p, "X3": X3_p})
+                        embeddings.append({"X1": X1_p, "X2": X2_p, "X3": X3_p, "y": y_sub_np})
 
-                    if batch_idx % 5:
+                    if batch_idx % 5 == 0:
                         oi1 = OverlapIndex(rho=RHO, ART="Fuzzy", match_tracking=MT)
                         oi2 = OverlapIndex(rho=RHO, ART="Fuzzy", match_tracking=MT)
                         oi3 = OverlapIndex(rho=RHO, ART="Fuzzy", match_tracking=MT)
