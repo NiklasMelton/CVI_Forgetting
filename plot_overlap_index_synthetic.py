@@ -4,7 +4,8 @@ import pickle
 from matplotlib.ticker import ScalarFormatter, FixedLocator
 from synthetic_datasets import generate_circle_dataset, generate_bar_dataset, \
     generate_ring_dataset, generate_cross_dataset
-from common import make_dirs
+from common import make_dirs, find_seeded, find_all_seeded
+
 
 def plot_oi_synthetic_combined_indices():
     plt.rcParams.update({
@@ -29,12 +30,19 @@ def plot_oi_synthetic_combined_indices():
     ]
 
     # Filenames and subplot titles
-    files = [
-        ("results_data/overlap_index/synthetic/circles_data.pickle", "Circles"),
-        ("results_data/overlap_index/synthetic/rings_data.pickle", "Rings"),
-        ("results_data/overlap_index/synthetic/bars_data.pickle", "Bars"),
-        ("results_data/overlap_index/synthetic/cross_data.pickle", "Cross"),
+    titles = [
+        "Circles",
+        "Rings",
+        "Bars",
+        "Cross",
     ]
+    files = [
+        "results_data/overlap_index/synthetic/circles_data.pickle",
+        "results_data/overlap_index/synthetic/rings_data.pickle",
+        "results_data/overlap_index/synthetic/bars_data.pickle",
+        "results_data/overlap_index/synthetic/cross_data.pickle",
+    ]
+    files = list(zip(find_seeded(files), titles))
 
     # Score labels and keys
     score_keys = [
@@ -122,6 +130,126 @@ def plot_oi_synthetic_combined_indices():
     path = "figures/overlap_index/synthetic/combined_datasets_indices.png"
     make_dirs(path)
     plt.savefig(path, bbox_inches='tight')
+
+
+
+def plot_oi_synthetic_combined_indices_all_seeds():
+    plt.rcParams.update({
+        'font.size': 14,
+        'axes.titlesize': 16,
+        'axes.labelsize': 14,
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
+        'legend.fontsize': 12,
+        'figure.titlesize': 16
+    })
+
+    # Okabe–Ito palette
+    palette = ["#E69F00", "#009E73", "#F0E442", "#0072B2", "#CC79A7"]
+
+    titles = ["Circles", "Rings", "Bars", "Cross"]
+    base_files = [
+        "results_data/overlap_index/synthetic/circles_data.pickle",
+        "results_data/overlap_index/synthetic/rings_data.pickle",
+        "results_data/overlap_index/synthetic/bars_data.pickle",
+        "results_data/overlap_index/synthetic/cross_data.pickle",
+    ]
+
+    score_keys = [
+        ("sil_scores", "Silhouette"),
+        ("db_scores", "Davies-Bouldin"),
+        ("ch_scores", "Calinski–Harabasz"),
+        ("cn_scores", "CONN"),
+        ("oi_scores", "Overlap Index"),
+    ]
+
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    axs = axs.flatten()
+
+    for ax, base_path, title in zip(axs, base_files, titles):
+        fnames = find_all_seeded(base_path)
+
+        # load all seeds
+        all_data = []
+        for fn in fnames:
+            with open(fn, "rb") as f:
+                all_data.append(pickle.load(f))
+
+        # assume distances / offsets are the same across seeds
+        if title == "Cross":
+            distances = np.array(all_data[0]["offsets"])
+            perfect_vals = [d["perfect_offset"] for d in all_data]
+        else:
+            distances = np.array(all_data[0]["distances"])
+            perfect_vals = [d["perfect_sep"] for d in all_data]
+
+        # Compute mean perfect separation (they’re usually identical anyway)
+        perfect = float(np.mean(perfect_vals))
+
+        # for each score, stack across seeds and compute mean & CI
+        for i, (key, label) in enumerate(score_keys):
+            # stack: shape (n_seeds, n_points)
+            arr = np.vstack([d[key] for d in all_data])
+            mean = arr.mean(axis=0)
+            sem  = arr.std(axis=0, ddof=1) / np.sqrt(arr.shape[0])
+            ci   = sem * 1.96  # 95% CI
+            lower = mean - ci
+            upper = mean + ci
+
+            color = palette[i % len(palette)]
+            lw = 3 if label == "Overlap Index" else 1.5
+            alpha = 0.9 if label == "Overlap Index" else 0.6
+
+            ax.plot(distances, mean, label=label, color=color, linewidth=lw, alpha=alpha)
+            ax.fill_between(distances, lower, upper, color=color, alpha=0.2)
+
+        # perfect separation lines
+        if title in ["Cross", "Rings"]:
+            ax.axvline( perfect, color='gray', linestyle='--', label="Perfect Sep +")
+            ax.axvline(-perfect, color='gray', linestyle='--', label="Perfect Sep –")
+        else:
+            ax.axvline(perfect, color='gray', linestyle='--', label="Perfect Separation")
+
+        ax.set_title(title)
+        ax.set_xlabel("Radius Difference" if title == "Rings" else "Center Distance")
+        ax.set_ylabel("Score")
+
+        ax.set_yscale("symlog", linthresh=1)
+        ax.set_ylim(0, None)
+        ymax = ax.get_ylim()[1]
+
+        # minor ticks
+        linear_minors = [i / 10 for i in range(1, 10)]
+        log_minors = [i for i in range(2, 10) if i < ymax]
+        max_decade = int(np.log10(ymax)) + 1
+        for decade in range(1, max_decade + 1):
+            base = 10 ** decade
+            log_minors += [base * f for f in range(2, 10) if base * f < ymax]
+        ax.yaxis.set_minor_locator(FixedLocator(linear_minors + log_minors))
+
+        ax.tick_params(axis='y', which='minor', length=4, width=0.8)
+        ax.tick_params(axis='y', which='major', length=7, width=1.2)
+        ax.grid(True, which='major', linestyle='--', linewidth=0.5)
+        ax.grid(False, which='minor')
+        ax.yaxis.set_major_formatter(ScalarFormatter())
+        ax.ticklabel_format(style='plain', axis='y', useOffset=False)
+
+    # shared legend
+    handles, labels = axs[0].get_legend_handles_labels()
+    fig.legend(
+        handles, labels,
+        loc='upper center',
+        bbox_to_anchor=(0.5, 1.08),
+        ncol=3,
+        frameon=True,
+        title="Scores"
+    )
+
+    plt.tight_layout()
+    out_path = "figures/overlap_index/synthetic/combined_datasets_indices_all_seeds.png"
+    make_dirs(out_path)
+    plt.savefig(out_path, bbox_inches='tight')
+
 
 
 def plot_combined_exemplars():

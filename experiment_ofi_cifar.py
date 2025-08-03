@@ -206,7 +206,7 @@ def experiment_ofi_cifar_cnn(seed = 42):
         traces_state[order] = states
         val_acc_trace[order] = val_acc
 
-    path = "results_data/OFI/real/ofi_traces_cifar_cnn.npz"
+    path = f"results_data/OFI/real/ofi_traces_cifar_cnn_seed_{seed}.npz"
     make_dirs(path)
     np.savez(
         path,
@@ -339,7 +339,7 @@ def experiment_ofi_cifar_knn(seed = 42):
         traces_state[order]  = states
         val_acc_trace[order] = val_acc
 
-    path = "results_data/OFI/real/ofi_traces_cifar_knn.npz"
+    path = f"results_data/OFI/real/ofi_traces_cifar_knn_seed_{seed}.npz"
     make_dirs(path)
     np.savez(
         path,

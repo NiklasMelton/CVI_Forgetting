@@ -204,7 +204,7 @@ def experiment_oi_cnn(seed = 0):
     print(f"Raw-val CONN:           {cn_val_raw:.4f}")
     print(f"Raw-val Silhouette:   {silhouette_raw:.4f}")
 
-    path = "results_data/overlap_index/real/mnist_oi.pickle"
+    path = f"results_data/overlap_index/real/mnist_oi_seed_{seed}.pickle"
     make_dirs(path)
     pickle.dump(
         {

@@ -125,7 +125,7 @@ def experiment_ofi_synthetic_data_cnn(seed = 42):
         traces_state[cond] = ofi_states
 
     # Save as structured arrays for traceability
-    path = "results_data/OFI/synthetic/ofi_cnn_traces_synthetic_data.npz"
+    path = f"results_data/OFI/synthetic/ofi_cnn_traces_synthetic_data_seed_{seed}.npz"
     make_dirs(path)
     np.savez(
         path,
@@ -280,7 +280,7 @@ def experiment_ofi_synthetic_data_knn(seed = 42):
         traces_forg[cond] = np.array(cluster_f, dtype=float)
         traces_over[cond] = np.array(cluster_o, dtype=float)
 
-    path = "results_data/OFI/synthetic/ofi_knn_traces_synthetic_data.npz"
+    path = f"results_data/OFI/synthetic/ofi_knn_traces_synthetic_data_seed_{seed}.npz"
     make_dirs(path)
     np.savez(
         path,

@@ -9,7 +9,7 @@ from scipy.spatial import procrustes
 
 from tqdm import tqdm
 
-from common import make_dirs
+from common import make_dirs, find_seeded, find_all_seeded
 
 
 
@@ -27,6 +27,7 @@ def plot_oi_mnist_combined_indices():
 
     # Load data
     path = "results_data/overlap_index/real/mnist_oi.pickle"
+    path  = find_seeded(path)
     data = pickle.load(open(path, "rb"))
     oi_conv1 = data["oi_conv1_pooled"]
     cn_conv1 = data["cn_conv1_pooled"]
@@ -146,6 +147,140 @@ def plot_oi_mnist_combined_indices():
     path = "figures/overlap_index/real/mnist_oi_traces.png"
     make_dirs(path)
     plt.savefig(path, bbox_inches='tight')
+
+
+
+def plot_oi_mnist_combined_indices_all_seeds():
+    plt.rcParams.update({
+        'font.size': 12,
+        'axes.titlesize': 14,
+        'axes.labelsize': 12,
+        'xtick.labelsize': 10,
+        'ytick.labelsize': 10,
+        'legend.fontsize': 10,
+        'legend.title_fontsize': 11
+    })
+
+    # 1) collect all seed pickles
+    base_path = "results_data/overlap_index/real/mnist_oi.pickle"
+    fpaths = find_all_seeded(base_path)
+    seed_data = [pickle.load(open(fp, "rb")) for fp in fpaths]
+    n_seeds = len(seed_data)
+
+    # 2) prepare batch indices from first seed
+    first = seed_data[0]
+    L_oi  = len(first["oi_conv1_pooled"])
+    batches_oi  = 5 * np.arange(L_oi)
+    L_acc = len(first["val_accuracy_history"])
+    batches_acc = np.arange(L_acc)
+
+    # 3) helper to stack an array-valued key
+    def stack(key):
+        return np.vstack([d[key] for d in seed_data])
+
+    # 4) define metrics: (key, color, label)
+    index_metrics = [
+        ("oi_conv1_pooled", "#0072B2", "OI Pool1"),
+        ("oi_conv2_pooled", "#479CD5", "OI Pool2"),
+        ("oi_fc1",          "#A1CBE4", "OI FC1"),
+        ("cn_conv1_pooled", "#009E73", "CONN Pool1"),
+        ("cn_conv2_pooled", "#53B69F", "CONN Pool2"),
+        ("cn_fc1",          "#A5D6C8", "CONN FC1"),
+        ("sil_conv1_pooled","#D55E00", "Sil Pool1"),
+        ("sil_conv2_pooled","#E88F4D", "Sil Pool2"),
+        ("sil_fc1",         "#F2B78A", "Sil FC1"),
+    ]
+    raw_metrics = [
+        ("oi_raw", "#0072B2", "OI raw data"),
+        ("cn_raw", "#009E73", "CONN raw data"),
+        ("sil_raw","#D55E00","Sil raw data"),
+    ]
+
+    # 5) CI plotting helper
+    def plot_with_ci(ax, x, arr, style, color, label):
+        mean = arr.mean(axis=0)
+        sem  = arr.std(ddof=1, axis=0) / np.sqrt(n_seeds)
+        ci95 = 1.96 * sem
+        ln, = ax.plot(x, mean, style, label=label, color=color)
+        ax.fill_between(x, mean - ci95, mean + ci95, color=color, alpha=0.2)
+        return ln
+
+    # 6) set up broken-axis figure
+    fig, (ax_top, ax_bottom) = plt.subplots(
+        2, 1, sharex=True, figsize=(9, 6),
+        gridspec_kw={"height_ratios": [1, 1]}
+    )
+
+    # 7) plot indices + raw on both subplots
+    for ax in (ax_top, ax_bottom):
+        # stacked index curves
+        for key, color, label in index_metrics:
+            arr = stack(key)  # shape (n_seeds, L_oi)
+            plot_with_ci(ax, batches_oi, arr, "-", color, label)
+
+        # stacked raw hlines
+        for key, color, label in raw_metrics:
+            vals = np.array([d[key] for d in seed_data])
+            mean = vals.mean()
+            sem  = vals.std(ddof=1) / np.sqrt(n_seeds)
+            ci95 = 1.96 * sem
+            ax.hlines(mean, batches_oi[0], batches_oi[-1],
+                      linestyle='--', label=label, color=color)
+            ax.fill_between(batches_oi,
+                            mean - ci95, mean + ci95,
+                            color=color, alpha=0.2)
+
+        ax.grid(True)
+
+    # 8) adjust zoom
+    ax_top.set_ylim(0.75, 1.01)
+    ax_bottom.set_ylim(-0.01, 0.4)
+    ax_top.spines['bottom'].set_visible(False)
+    ax_bottom.spines['top'].set_visible(False)
+    ax_top.tick_params(labeltop=False)
+    ax_bottom.xaxis.tick_bottom()
+
+    # diagonal break markers
+    for (a, b) in [(-0.01, +0.01), (0.99, 1.01)]:
+        ax_top.plot((a, b), (-0.02, +0.02), transform=ax_top.transAxes, color='k', clip_on=False)
+        ax_bottom.plot((a, b), (1 - 0.02, 1 + 0.02),
+                       transform=ax_bottom.transAxes, color='k', clip_on=False)
+
+    # 9) validation accuracy on twin axis with CI
+    ax_acc = ax_top.twinx()
+    acc_arr = stack("val_accuracy_history")  # (n_seeds, L_acc)
+    plot_with_ci(ax_acc, batches_acc, acc_arr, ":", "gray", "val accuracy")
+    ax_acc.set_ylim(0.75, 1.01)
+    ax_acc.set_ylabel('Validation Accuracy')
+
+    # 10) labels & title
+    ax_bottom.set_xlabel("Batch Index")
+    ax_top.set_ylabel("Index Values")
+    ax_bottom.set_ylabel("Index Values")
+    fig.suptitle(
+        'Overlap, Silhouette, and CONN Index\nfor MNIST at Each Feature Level'
+    )
+
+    # 11) combined legend
+    lines1, labels1 = ax_top.get_legend_handles_labels()
+    lines2, labels2 = ax_acc.get_legend_handles_labels()
+    # fig.legend will automatically merge and place nicely
+    fig.legend(
+        lines1 + lines2,
+        labels1 + labels2,
+        loc='upper center',
+        bbox_to_anchor=(0.5, 1.15),
+        ncol=5,
+        frameon=True,
+        title='Indices & Val Accuracy'
+    )
+
+    plt.tight_layout()
+    plt.subplots_adjust(hspace=0.05)
+    out_path = "figures/overlap_index/real/mnist_oi_traces_all_seeds.png"
+    make_dirs(out_path)
+    plt.savefig(out_path, bbox_inches='tight')
+
 
 def plot_cnn_architecture():
 
@@ -267,6 +402,7 @@ def plot_embeddings():
 
     # --- Load the data ---
     path = "results_data/overlap_index/real/mnist_embeddings.pickle"
+    path = find_seeded(path)
     data = pickle.load(open(path, "rb"))
 
     # Define keys and number of entries

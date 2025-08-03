@@ -27,7 +27,7 @@ def experiment_circle(seed = 42, n_seeds=10):
         plot_every_n=5,
         random_state=seed
     )
-    path = "results_data/overlap_index/synthetic/circles_data.pickle"
+    path = f"results_data/overlap_index/synthetic/circles_data_seed_{seed}.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -136,7 +136,7 @@ def analyze_circle_separation_sweep(
             ax.axis('off')
 
     plt.tight_layout()
-    path = "figures/overlap_index/synthetic/blob_separation_exemplars.png"
+    path = f"figures/overlap_index/synthetic/blob_separation_exemplars_seed_{random_state}.png"
     make_dirs(path)
     plt.savefig(path)
 
@@ -164,7 +164,7 @@ def experiment_ring(seed = 42, n_seeds=10):
         random_state=seed,
         figsize_per_plot=(3, 3)
     )
-    path = "results_data/overlap_index/synthetic/rings_data.pickle"
+    path = f"results_data/overlap_index/synthetic/rings_data_seed_{seed}.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -283,7 +283,7 @@ def analyze_ring_separation_sweep(
             ax.axis('off')
 
     plt.tight_layout()
-    path = "figures/overlap_index/synthetic/ring_separation_exemplars.png"
+    path = f"figures/overlap_index/synthetic/ring_separation_exemplars_seed_{random_state}.png"
     make_dirs(path)
     plt.savefig(path)
     data = {"distances": np.array(radius_gaps), "sil_scores": sil_scores,
@@ -311,7 +311,7 @@ def experiment_bars(seed = 42, n_seeds = 10):
         random_state=seed,
         figsize_per_plot=(3, 3)
     )
-    path = "results_data/overlap_index/synthetic/bars_data.pickle"
+    path = f"results_data/overlap_index/synthetic/bars_data_seed_{seed}.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -424,7 +424,7 @@ def analyze_bar_separation_sweep(
             ax.axis('off')
 
     plt.tight_layout()
-    path = "figures/overlap_index/synthetic/bar_separation_exemplars.png"
+    path = f"figures/overlap_index/synthetic/bar_separation_exemplars_seed_{random_state}.png"
     make_dirs(path)
     plt.savefig(path)
     data = {"distances": separations, "sil_scores":sil_scores, "db_scores":db_scores, "ch_scores":ch_scores, "cn_scores":cn_scores, "oi_scores":oi_scores, "perfect_sep": perfect_sep}
@@ -449,7 +449,7 @@ def experiment_cross(seed = 42, n_seeds = 10):
         random_state=seed,
         figsize_per_plot=(3, 3)
     )
-    path = "results_data/overlap_index/synthetic/cross_data.pickle"
+    path = f"results_data/overlap_index/synthetic/cross_data_seed_{seed}.pickle"
     make_dirs(path)
     pickle.dump(data, open(path, "wb"))
 
@@ -558,7 +558,7 @@ def analyze_cross_offset_sweep(
             ax.axis('off')
 
     plt.tight_layout()
-    path = "figures/overlap_index/synthetic/cross_offset_exemplars.png"
+    path = f"figures/overlap_index/synthetic/cross_offset_exemplars_seed_{random_state}.png"
     make_dirs(path)
     plt.savefig(path)
 

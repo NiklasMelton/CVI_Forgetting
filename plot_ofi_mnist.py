@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from common import make_dirs
+from common import make_dirs, find_seeded, find_all_seeded, find_lowest_seeded
 
 def plot_ofi_mnist():
     plt.rcParams.update({
@@ -16,6 +16,7 @@ def plot_ofi_mnist():
     # Load data
     cnn_path = "results_data/OFI/real/ofi_traces_mnist_cnn.npz"
     knn_path = "results_data/OFI/real/ofi_traces_mnist_knn.npz"
+    cnn_path, knn_path = find_seeded([cnn_path, knn_path])
     cnn_data = np.load(cnn_path, allow_pickle=True)
     knn_data = np.load(knn_path, allow_pickle=True)
 
@@ -141,6 +142,167 @@ def plot_ofi_mnist():
     path = "figures/OFI/real/mnist_ofi_cnn_knn.png"
     make_dirs(path)
     plt.savefig(path, bbox_inches='tight')
+
+
+def plot_ofi_mnist_all_seeds():
+    plt.rcParams.update({
+        'font.size': 12,
+        'axes.titlesize': 16,
+        'axes.labelsize': 12,
+        'xtick.labelsize': 11,
+        'ytick.labelsize': 11,
+        'legend.fontsize': 11,
+        'legend.title_fontsize': 12
+    })
+
+    # 1) find all seed files
+    cnn_base = "results_data/OFI/real/ofi_traces_mnist_cnn.npz"
+    knn_base = "results_data/OFI/real/ofi_traces_mnist_knn.npz"
+    cnn_files = find_all_seeded(cnn_base)
+    knn_files = find_all_seeded(knn_base)
+
+    # 2) pick the lowest-seed file for TPR plotting
+    cnn_lowest_fp = find_lowest_seeded(cnn_files)
+    knn_lowest_fp = find_lowest_seeded(knn_files)
+
+    # 3) load lowest-seed data + all seeds
+    cnn_lowest = np.load(cnn_lowest_fp, allow_pickle=True)
+    knn_lowest = np.load(knn_lowest_fp, allow_pickle=True)
+    cnn_seeds  = [np.load(fp, allow_pickle=True) for fp in cnn_files]
+    knn_seeds  = [np.load(fp, allow_pickle=True) for fp in knn_files]
+
+    methods      = ["CNN", "KNN"]
+    lowest_data  = [cnn_lowest, knn_lowest]
+    all_seeds    = [cnn_seeds,  knn_seeds]
+
+    orders       = ["ordered", "shuffled"]
+    colors       = [
+        "#332288", "#88CCEE", "#44AA99", "#117733", "#999933",
+        "#DDCC77", "#CC6677", "#882255", "#AA4499", "#661100",
+        "#6699CC", "#4477AA", "#AA4466", "#000000"
+    ]
+    class_labels    = [f"Class {i} TPR" for i in range(10)]
+    metric_labels   = ["Accuracy", "Overshadowing", "Forgetting"]
+
+    # helper for CI shading
+    def plot_ci(stack, style, clr, ax):
+        mean = stack.mean(axis=0)
+        sem  = stack.std(ddof=1, axis=0) / np.sqrt(len(stack))
+        ci95 = 1.96 * sem
+        ln, = ax.plot(x, mean, style, color=clr, linewidth=2)
+        ax.fill_between(x, mean-ci95, mean+ci95, color=clr, alpha=0.2)
+        return ln
+
+    # === Mosaic layout ===
+    fig = plt.figure(figsize=(14, 10))
+    mosaic = [
+        ["A", "B"],
+        [".", "."],
+        ["C", "D"],
+        ["E", "F"],
+    ]
+    axd = fig.subplot_mosaic(mosaic, height_ratios=[1.5, 0.1, 0.7, 0.5])
+    plt.subplots_adjust(hspace=0.1, wspace=0.25, top=0.84, bottom=0.07)
+
+    tpr_lines    = []
+    metric_lines = []
+
+    for col, (method, low, seeds) in enumerate(zip(methods, lowest_data, all_seeds)):
+        for row, order in enumerate(orders):
+            prefix = order
+            # lowest seed for TPR
+            tpr_low = low[f"{prefix}_tpr"]           # (n_batches, 10)
+            # all seeds for metrics
+            acc_stack = np.vstack([sd[f"{prefix}_accuracy"] for sd in seeds])        # (n_seeds, n_batches)
+            ofi_stack = np.stack([sd[f"{prefix}_states"] for sd in seeds], axis=0)    # (n_seeds, n_batches, 2)
+            O_stack = ofi_stack[:,:,0]
+            F_stack = ofi_stack[:,:,1]
+
+            n_batches = tpr_low.shape[0]
+            x = np.arange(n_batches)
+
+            if row == 0:
+                ax  = axd[["A","B"][col]]
+                ax2 = ax.twinx()
+
+                # --- TPRs from lowest seed ---
+                for i in range(10):
+                    ln, = ax.plot(x, tpr_low[:, i], color=colors[i], linewidth=1, alpha=0.7)
+                    if col == 0:
+                        tpr_lines.append(ln)
+
+                # --- Accuracy, O, F with CI ---
+                acc_ln = plot_ci(acc_stack, "-",  colors[-1], ax)
+                o_ln   = plot_ci(O_stack,    "--", colors[-2], ax2)
+                f_ln   = plot_ci(F_stack,    "-.", colors[-3], ax2)
+                if col == 0:
+                    metric_lines = [acc_ln, o_ln, f_ln]
+
+                # axes & labels
+                ax.set_ylim(0, 1.05)
+                ax2.set_ylim(0, 1.05)
+                ax.set_ylabel("TPR / Accuracy")
+                ax2.set_ylabel("O / F")
+
+                ax.set_title(f"{method} – {order.capitalize()}", fontsize=14)
+
+            else:
+                # broken-axis pair
+                ax_top = axd[["C","D"][col]]
+                ax_bot = axd[["E","F"][col]]
+                ax2     = ax_top.twinx()
+                ax_bot2 = ax_bot.twinx()
+
+                # hide spines, add break markers
+                ax_top.spines['bottom'].set_visible(False)
+                ax_bot.spines['top'].set_visible(False)
+                ax_top.tick_params(labeltop=False)
+                ax_top.set_xticklabels([])
+                ax_bot.xaxis.tick_bottom()
+                for (a, b) in [(-0.01, +0.01), (0.99, 1.01)]:
+                    ax_top.plot((a, b), (-0.015, +0.015), transform=ax_top.transAxes, color='k', clip_on=False)
+                    ax_bot.plot((a, b), (1-0.015, 1+0.015), transform=ax_bot.transAxes, color='k', clip_on=False)
+
+                # --- TPRs from lowest seed ---
+                for i in range(10):
+                    ax_top.plot(x, tpr_low[:, i], color=colors[i], linewidth=1, alpha=0.7)
+
+                # --- Accuracy CI on both subplots ---
+                plot_ci(acc_stack, "-",  colors[-1], ax_top)
+                plot_ci(acc_stack, "-",  colors[-1], ax_bot)
+
+                # --- O and F CI on both subplots ---
+                plot_ci(O_stack, "--", colors[-2], ax2)
+                plot_ci(O_stack, "--", colors[-2], ax_bot2)
+                plot_ci(F_stack, "-.", colors[-3], ax2)
+                plot_ci(F_stack, "-.", colors[-3], ax_bot2)
+
+                # adjust y-limits
+                ax_top.set_ylim(0.6, 1.0)
+                ax2.set_ylim(0.6, 1.0)
+                ax_bot.set_ylim(0.0, 0.1)
+                ax_bot2.set_ylim(0.0, 0.1)
+
+                # labels & title
+                if col == 0:
+                    ax_top.set_ylabel("TPR / Accuracy")
+                else:
+                    ax_top.set_ylabel("O / F")
+                ax_top.set_title(f"{method} – {order.capitalize()}", fontsize=14)
+                ax_bot.set_xlabel("Batch Index")
+
+    # === Legends ===
+    fig.legend(tpr_lines,    class_labels,
+               loc="upper center", bbox_to_anchor=(0.375, 0.965),
+               title="Class TPRs", ncol=5, frameon=True)
+    fig.legend(metric_lines, metric_labels,
+               loc="upper center", bbox_to_anchor=(0.815, 0.965),
+               title="Global Metrics", ncol=3, frameon=True)
+
+    # save
+    out_path = "figures/OFI/real/mnist_ofi_cnn_knn_all_seeds.png"
+    make_dirs(out_path)
+    plt.savefig(out_path, bbox_inches='tight')
 
 if __name__ == "__main__":
     plot_ofi_mnist()
