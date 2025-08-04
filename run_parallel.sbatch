@@ -4,7 +4,7 @@
 #SBATCH --nodelist=compute-11-26
 #SBATCH --nodes=1
 #SBATCH --ntasks=20               # spawn 20 independent tasks
-#SBATCH --cpus-per-task=3         # give each task 3 CPUs for its internal threading
+#SBATCH --cpus-per-task=2         # give each task 3 CPUs for its internal threading
 #SBATCH --mem-per-cpu=4G          # 4 GB × 3 CPUs × 20 tasks = 240 GB
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/Mill-%j.out
