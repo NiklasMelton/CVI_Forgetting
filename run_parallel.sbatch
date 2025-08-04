@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=OI_OFI_exp
 #SBATCH --partition=general
-#SBATCH --nodelist=compute-11-26
+#SBATCH --nodelist=compute-14-02
 #SBATCH --nodes=1
 #SBATCH --ntasks=20               # spawn 20 independent tasks
 #SBATCH --cpus-per-task=2         # give each task 3 CPUs for its internal threading
