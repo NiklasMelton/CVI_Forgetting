@@ -7,7 +7,6 @@
 #SBATCH --time=24:00:00
 #SBATCH --out=Mill-%j.out
 #SBATCH --mail-type=begin,end,fail,requeue
-#SBATCH --constraint=intel,amd
 
 # load python and activate env
 module load python/3.12.1
