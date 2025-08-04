@@ -23,12 +23,13 @@ SUB_SAMPLE_SIZE = 1000
 def experiment_oi_cnn(seed = 0):
 
     # ── 1) DEVICE SELECTION ───────────────────────────────────────────
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
+    # if torch.cuda.is_available():
+    #     device = torch.device("cuda")
+    # elif torch.backends.mps.is_available():
+    #     device = torch.device("mps")
+    # else:
+    #     device = torch.device("cpu")
+    device = torch.device("cpu")
     print("Using device:", device)
 
     # ── 2) SEED ───────────────────────────────────────────────────────
