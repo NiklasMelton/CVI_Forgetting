@@ -13,10 +13,11 @@ def find_lowest_seeded(files):
     # pick lowest-seed file for each
     return min(files, key=_seed_num)
 
-def find_all_seeded(base_path):
-    base_root = os.path.splitext(base_path)[0]
-    pattern = f"{base_root}_seed_*.pickle"
-    fnames = sorted(glob.glob(pattern))
+def find_all_seeded(base_path: str) -> List[str]:
+    base_root, ext = os.path.splitext(base_path)
+    # if ext is empty, this still works as “…_seed_*”
+    pattern = f"{base_root}_seed_*{ext}"
+    fnames = sorted(glob(pattern))
     if not fnames:
         raise FileNotFoundError(f"No files matching {pattern}")
     return fnames
