@@ -3,7 +3,7 @@ import multiprocessing
 
 # === USER PARAMETERS ===
 NUM_SEEDS    = 20       # how many different random seeds to try
-NUM_JOBS     = 8        # how many worker processes to spawn
+NUM_JOBS     = 20        # how many worker processes to spawn
 INITIAL_SEED = 12345    # for reproducible seed list generation
 
 # === EXPERIMENT IMPORTS ===
