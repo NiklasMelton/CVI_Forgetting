@@ -2,9 +2,10 @@
 #SBATCH --job-name=OI_OFI_exp
 #SBATCH --partition=general
 #SBATCH --nodes=1
-#SBATCH --ntasks=48
-#SBATCH --cpus-per-task=1                               #no. of cpu's per task
-#SBATCH --mem-per-cpu=8G
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=20
+#SBATCH --mem-per-cpu=6G
+sbatch --nodelist=compute-34-31
 #SBATCH --time=24:00:00
 #SBATCH --out=Mill-%j.out
 #SBATCH --mail-type=begin,end,fail,requeue
