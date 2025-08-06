@@ -44,9 +44,9 @@ def experiment_oi_cnn(seed = 0):
                                         transform=transform)
 
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,
-                              num_workers=4, pin_memory=False)
+                              num_workers=0, pin_memory=False)
     val_loader = DataLoader(val_ds, batch_size=1024, shuffle=False,
-                            num_workers=4, pin_memory=False)
+                            num_workers=0, pin_memory=False)
 
     # ── 4) LOAD FULL VALIDATION SET ONCE ─────────────────────────────
     val_inputs = []
