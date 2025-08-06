@@ -58,15 +58,41 @@ def _run_experiment(func, seed):
         kwargs["n_seeds"] = 1
     func(**kwargs)
 
-def main():
-    # 1) safe start for TF
-    mp.set_start_method("spawn", force=True)
+# def main():
+#     # 1) safe start for TF
+#     mp.set_start_method("spawn", force=True)
+#
+#     # 2) reproducible list of seeds
+#     rng = random.Random(INITIAL_SEED)
+#     seeds = [rng.randint(0, 2**32 - 1) for _ in range(NUM_SEEDS)]
+#
+#     # 3) all experiments (unchanged)
+#     experiment_funcs = [
+#         # experiment_circle,
+#         # experiment_ring,
+#         # experiment_bars,
+#         # experiment_cross,
+#         # experiment_ofi_synthetic_data_cnn,
+#         # experiment_ofi_synthetic_data_knn,
+#         experiment_oi_cnn,
+#         # experiment_ofi_mnist_cnn,
+#         # experiment_ofi_mnist_knn,
+#         # experiment_ofi_cifar_cnn,
+#         # experiment_ofi_cifar_knn,
+#     ]
+#
+#     # 4) dispatch: 20 workers, each with 3 threads internally
+#     with mp.Pool(processes=NUM_JOBS, initializer=_init_worker) as pool:
+#         for func in experiment_funcs:
+#             for seed in seeds:
+#                 pool.apply_async(_run_experiment, args=(func, seed))
+#         pool.close()
+#         pool.join()
 
-    # 2) reproducible list of seeds
+def main():
+    mp.set_start_method("spawn", force=True)
     rng = random.Random(INITIAL_SEED)
     seeds = [rng.randint(0, 2**32 - 1) for _ in range(NUM_SEEDS)]
-
-    # 3) all experiments (unchanged)
     experiment_funcs = [
         # experiment_circle,
         # experiment_ring,
@@ -81,13 +107,23 @@ def main():
         # experiment_ofi_cifar_knn,
     ]
 
-    # 4) dispatch: 20 workers, each with 3 threads internally
+    results = []
     with mp.Pool(processes=NUM_JOBS, initializer=_init_worker) as pool:
         for func in experiment_funcs:
             for seed in seeds:
-                pool.apply_async(_run_experiment, args=(func, seed))
+                res = pool.apply_async(_run_experiment, args=(func, seed))
+                results.append((func.__name__, seed, res))
         pool.close()
         pool.join()
+
+    # now collect results (and re-raise any exceptions)
+    for func_name, seed, res in results:
+        try:
+            res.get()      # <— this will raise if the worker crashed
+        except Exception as e:
+            print(f"[!] {func_name}(seed={seed}) failed with:", e)
+            raise      # or continue, depending on how you want to handle it
+
 
 if __name__ == "__main__":
     main()
