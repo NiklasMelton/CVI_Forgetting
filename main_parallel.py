@@ -94,17 +94,17 @@ def main():
     rng = random.Random(INITIAL_SEED)
     seeds = [rng.randint(0, 2**32 - 1) for _ in range(NUM_SEEDS)]
     experiment_funcs = [
-        # experiment_circle,
-        # experiment_ring,
-        # experiment_bars,
-        # experiment_cross,
-        # experiment_ofi_synthetic_data_cnn,
-        # experiment_ofi_synthetic_data_knn,
+        experiment_circle,
+        experiment_ring,
+        experiment_bars,
+        experiment_cross,
+        experiment_ofi_synthetic_data_cnn,
+        experiment_ofi_synthetic_data_knn,
         experiment_oi_cnn,
-        # experiment_ofi_mnist_cnn,
-        # experiment_ofi_mnist_knn,
-        # experiment_ofi_cifar_cnn,
-        # experiment_ofi_cifar_knn,
+        experiment_ofi_mnist_cnn,
+        experiment_ofi_mnist_knn,
+        experiment_ofi_cifar_cnn,
+        experiment_ofi_cifar_knn,
     ]
 
     results = []
