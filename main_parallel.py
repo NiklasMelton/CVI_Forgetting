@@ -5,7 +5,7 @@ import multiprocessing as mp
 # === USER PARAMETERS ===
 NUM_SEEDS    = 20        # how many different random seeds
 NUM_JOBS     = 20        # must match SBATCH --ntasks
-INITIAL_SEED = 12345     # for reproducible seed list generation
+INITIAL_SEED = 12346     # for reproducible seed list generation
 
 # === EXPERIMENT IMPORTS ===
 from experiment_overlap_index_synthetic_data import (
